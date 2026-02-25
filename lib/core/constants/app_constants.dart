@@ -2,7 +2,7 @@ class AppConstants {
   AppConstants._();
 
   // API
-  static const String apiBaseUrl = 'https://safe-city-app-428392dd597f.herokuapp.com/api/v1';
+  static const String apiBaseUrl = 'https://safe-city-back-7c8ed50edd7d.herokuapp.com/api/v1';
   
   // Storage keys
   static const String accessTokenKey = 'access_token';
