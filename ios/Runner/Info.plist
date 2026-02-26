@@ -45,5 +45,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Для вызова охраны необходимо определить ваше местоположение</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Для вызова охраны необходимо определить ваше местоположение</string>
 </dict>
 </plist>

@@ -69,28 +69,61 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
   }
   
   Future<void> _createEmergencyCall() async {
+    setState(() {
+      _error = null;
+      _isLoading = true;
+    });
+
     try {
-      final position = await _getCurrentLocation();
-      if (position == null) {
+      // 1. Check location services
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
         setState(() {
-          _error = 'Не удалось определить местоположение';
+          _error = 'Службы геолокации отключены. Включите GPS в настройках устройства.';
           _isLoading = false;
         });
         return;
       }
-      
+
+      // 2. Check / request permission
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _error = 'Доступ к геолокации запрещён. Разрешите доступ для вызова охраны.';
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _error = 'Доступ к геолокации запрещён навсегда. Откройте настройки приложения и разрешите доступ к геолокации.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // 3. Get position
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+
+      // 4. Create emergency call
       final response = await ApiClient().dio.post('/emergency/call', data: {
         'latitude': position.latitude,
         'longitude': position.longitude,
       });
-      
+
       if (response.statusCode == 200) {
         setState(() {
           _callId = response.data['id'];
           _status = EmergencyStatus.searching;
           _isLoading = false;
         });
-        
+
         _pollStatus();
       }
     } on ApiException catch (e) {
@@ -100,30 +133,9 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
       });
     } catch (e) {
       setState(() {
-        _error = 'Ошибка создания вызова';
+        _error = 'Не удалось определить местоположение. Проверьте настройки GPS.';
         _isLoading = false;
       });
-    }
-  }
-  
-  Future<Position?> _getCurrentLocation() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) return null;
-      
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) return null;
-      }
-      
-      if (permission == LocationPermission.deniedForever) return null;
-      
-      return await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-      );
-    } catch (_) {
-      return null;
     }
   }
   
@@ -297,10 +309,42 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
                   color: AppColors.error,
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  _error!,
-                  style: const TextStyle(color: AppColors.error),
-                  textAlign: TextAlign.center,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(color: AppColors.error, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _createEmergencyCall,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Повторить'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.sosRed,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    OutlinedButton.icon(
+                      onPressed: () => Geolocator.openAppSettings(),
+                      icon: const Icon(Icons.settings),
+                      label: const Text('Настройки'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        side: const BorderSide(color: Colors.white30),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
               
