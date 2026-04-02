@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api.dart';
+import '../models/subscription.dart';
+import '../models/user_settings.dart';
 
 // User model
 class User {
@@ -38,54 +40,35 @@ class User {
   bool get hasActiveSubscription => subscription?.isActive ?? false;
 }
 
-class Subscription {
-  final int id;
-  final String status;
-  final String planType;
-  final DateTime? expiresAt;
-  
-  Subscription({
-    required this.id,
-    required this.status,
-    required this.planType,
-    this.expiresAt,
-  });
-  
-  factory Subscription.fromJson(Map<String, dynamic> json) {
-    return Subscription(
-      id: json['id'],
-      status: json['status'],
-      planType: json['plan_type'],
-      expiresAt: json['expires_at'] != null 
-          ? DateTime.parse(json['expires_at'])
-          : null,
-    );
-  }
-  
-  bool get isActive => status == 'active';
-}
 
-// User state
 class UserState {
   final User? user;
   final bool isLoading;
   final String? error;
+  final UserSettings? settings;
+  final Subscription? fetchedSubscription;
   
   const UserState({
     this.user,
     this.isLoading = false,
     this.error,
+    this.settings,
+    this.fetchedSubscription,
   });
   
   UserState copyWith({
     User? user,
     bool? isLoading,
     String? error,
+    UserSettings? settings,
+    Subscription? fetchedSubscription,
   }) {
     return UserState(
       user: user ?? this.user,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      settings: settings ?? this.settings,
+      fetchedSubscription: fetchedSubscription ?? this.fetchedSubscription,
     );
   }
 }
@@ -147,6 +130,50 @@ class UserNotifier extends Notifier<UserState> {
         'longitude': longitude,
       });
       return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> fetchSubscription() async {
+    try {
+      final response = await _apiClient.dio.get('/user/subscription');
+      if (response.statusCode == 200) {
+        state = state.copyWith(fetchedSubscription: Subscription.fromJson(response.data));
+      }
+    } catch (_) {}
+  }
+
+  Future<void> fetchSettings() async {
+    try {
+      final response = await _apiClient.dio.get('/user/settings');
+      if (response.statusCode == 200) {
+        state = state.copyWith(settings: UserSettings.fromJson(response.data));
+      }
+    } catch (_) {}
+  }
+
+  Future<bool> updateSettings(UserSettings settings) async {
+    try {
+      final response = await _apiClient.dio.patch('/user/settings', data: settings.toJson());
+      if (response.statusCode == 200) {
+        state = state.copyWith(settings: settings);
+        return true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteAccount() async {
+    try {
+      final response = await _apiClient.dio.delete('/user/me');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        clear();
+        return true;
+      }
+      return false;
     } catch (_) {
       return false;
     }

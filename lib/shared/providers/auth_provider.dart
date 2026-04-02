@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api.dart';
 
@@ -111,3 +113,26 @@ class AuthNotifier extends Notifier<AuthState> {
 }
 
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+
+/// A [ChangeNotifier] that notifies GoRouter when auth state changes.
+class AuthChangeNotifier extends ChangeNotifier {
+  late final ProviderSubscription<AuthState> _subscription;
+
+  AuthChangeNotifier(Ref ref) {
+    _subscription = ref.listen<AuthState>(authProvider, (_, __) {
+      notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription.close();
+    super.dispose();
+  }
+}
+
+final authChangeNotifierProvider = Provider<AuthChangeNotifier>((ref) {
+  final notifier = AuthChangeNotifier(ref);
+  ref.onDispose(() => notifier.dispose());
+  return notifier;
+});
