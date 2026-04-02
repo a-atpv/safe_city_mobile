@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/api/api.dart';
+import '../../../shared/providers/providers.dart';
 
 enum EmergencyStatus {
   created,
@@ -35,6 +38,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
   int? _callId;
   String? _error;
   bool _isLoading = true;
+  StreamSubscription<Position>? _locationSubscription;
   
   @override
   void initState() {
@@ -53,6 +57,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
     _radarController.dispose();
     _timer?.cancel();
     _pollTimer?.cancel();
+    _locationSubscription?.cancel();
     super.dispose();
   }
   
@@ -87,7 +92,8 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
 
       // 2. Check / request permission
       LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.unableToDetermine) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           setState(() {
@@ -107,63 +113,136 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
       }
 
       // 3. Get position
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      // Try fast path first (helps in cases where GPS "fix" takes time).
+      Position? position = await Geolocator.getLastKnownPosition();
+      position ??= await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          // Give GPS more time to get a fix before failing.
+          timeLimit: Duration(seconds: 25),
+        ),
       );
 
-      // 4. Create emergency call
-      final response = await ApiClient().dio.post('/emergency/call', data: {
-        'latitude': position.latitude,
-        'longitude': position.longitude,
-      });
+      final success = await ref.read(emergencyProvider.notifier).createCall(
+        position.latitude,
+        position.longitude,
+        null, // address if available
+      );
 
-      if (response.statusCode == 200) {
+      if (success) {
+        final activeCall = ref.read(emergencyProvider).activeCall;
         setState(() {
-          _callId = response.data['id'];
+          _callId = activeCall?.id;
           _status = EmergencyStatus.searching;
           _isLoading = false;
         });
 
         _pollStatus();
+        _startLocationUpdates();
+      } else {
+        setState(() {
+          _error = ref.read(emergencyProvider).error ?? 'Не удалось создать вызов.';
+          _isLoading = false;
+        });
       }
     } on ApiException catch (e) {
       setState(() {
         _error = e.message;
         _isLoading = false;
       });
+    } on DioException catch (e) {
+      // EmergencyScreen calls dio directly; convert Dio error -> ApiException
+      // so we can show backend `detail`/`message` instead of raw DioException.
+      final apiError = ApiException.fromDioError(e);
+      setState(() {
+        _error = kDebugMode
+            ? '${apiError.message} (status: ${apiError.statusCode})'
+            : apiError.message;
+        _isLoading = false;
+      });
+    } on LocationServiceDisabledException catch (_) {
+      setState(() {
+        _error = 'Службы геолокации отключены. Включите GPS в настройках устройства.';
+        _isLoading = false;
+      });
+    } on PermissionDeniedException catch (_) {
+      setState(() {
+        _error = 'Доступ к геолокации запрещён. Разрешите доступ для вызова охраны.';
+        _isLoading = false;
+      });
+    } on TimeoutException catch (_) {
+      setState(() {
+        _error = 'Не удалось определить местоположение за отведенное время. Проверьте GPS и повторите.';
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() {
-        _error = 'Не удалось определить местоположение. Проверьте настройки GPS.';
+        // Keep the user-friendly message, but provide details in debug builds.
+        _error = kDebugMode ? 'Не удалось определить местоположение: $e' : 'Не удалось определить местоположение. Проверьте настройки GPS.';
         _isLoading = false;
       });
     }
   }
   
-  void _pollStatus() {
-    _pollTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
-      if (_callId == null) {
-        timer.cancel();
-        return;
+  void _startLocationUpdates() {
+    final locationSettings = const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 10, // Only notify when user moves 10 meters
+    );
+    
+    _locationSubscription = Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).listen((Position position) {
+      if (_status != EmergencyStatus.completed &&
+          _status != EmergencyStatus.cancelledByUser &&
+          _status != EmergencyStatus.cancelledBySystem) {
+        ref.read(userProvider.notifier).updateLocation(
+          position.latitude, 
+          position.longitude,
+        );
       }
+    });
+  }
+  
+  void _pollStatus() {
+    _pollTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
+      await ref.read(emergencyProvider.notifier).getActiveCall();
+      final callState = ref.read(emergencyProvider).activeCall;
       
-      try {
-        final response = await ApiClient().dio.get('/emergency/call/$_callId');
-        if (response.statusCode == 200) {
-          final statusStr = response.data['status'] as String;
-          final newStatus = _parseStatus(statusStr);
-          
-          if (newStatus != _status) {
-            setState(() => _status = newStatus);
-          }
-          
-          if (newStatus == EmergencyStatus.completed ||
-              newStatus == EmergencyStatus.cancelledByUser ||
-              newStatus == EmergencyStatus.cancelledBySystem) {
-            timer.cancel();
-            _timer?.cancel();
+      if (callState != null) {
+        final newStatus = _parseStatus(callState.status);
+        
+        if (newStatus != _status) {
+          setState(() => _status = newStatus);
+        }
+        
+        if (newStatus == EmergencyStatus.accepted || 
+            newStatus == EmergencyStatus.enRoute || 
+            newStatus == EmergencyStatus.arrived) {
+          // Could open chat popup or navigate to chat screen
+          // We will let the user navigate to chat screen manually or automatically
+          // for the sake of presentation we navigate:
+          if (mounted) {
+             timer.cancel();
+             _timer?.cancel();
+             _locationSubscription?.cancel();
+             context.push('/emergency/chat', extra: callState.id);
           }
         }
-      } catch (_) {}
+        
+        if (newStatus == EmergencyStatus.completed) {
+          timer.cancel();
+          _timer?.cancel();
+          _locationSubscription?.cancel();
+          if (mounted) context.go('/emergency/review', extra: callState.id);
+        } else if (newStatus == EmergencyStatus.cancelledByUser ||
+                   newStatus == EmergencyStatus.cancelledBySystem) {
+          timer.cancel();
+          _timer?.cancel();
+          _locationSubscription?.cancel();
+          if (mounted) context.go('/home');
+        }
+      }
     });
   }
   
@@ -210,9 +289,8 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
     );
     
     if (confirmed == true) {
-      try {
-        await ApiClient().dio.post('/emergency/call/$_callId/cancel');
-      } catch (_) {}
+      await ref.read(emergencyProvider.notifier).cancelCall(_callId!, null);
+      _locationSubscription?.cancel();
       if (mounted) context.go('/home');
     }
   }
