@@ -87,7 +87,11 @@ class EmergencyNotifier extends Notifier<EmergencyState> {
         return true;
       }
       return false;
-    } catch (_) {
+    } on ApiException catch (e) {
+      state = state.copyWith(error: e.message);
+      return false;
+    } catch (e) {
+      state = state.copyWith(error: 'Не удалось отменить вызов');
       return false;
     }
   }
@@ -113,7 +117,11 @@ class EmergencyNotifier extends Notifier<EmergencyState> {
         return true;
       }
       return false;
-    } catch (_) {
+    } on ApiException catch (e) {
+      state = state.copyWith(error: e.message);
+      return false;
+    } catch (e) {
+      state = state.copyWith(error: 'Не удалось отправить сообщение');
       return false;
     }
   }

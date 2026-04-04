@@ -40,6 +40,7 @@ class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() {
     _apiClient = ApiClient();
+    _apiClient.onLogout = logout;
     _checkAuthStatus();
     return const AuthState();
   }

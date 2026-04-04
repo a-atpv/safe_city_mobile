@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/widgets.dart';
 import '../../../shared/providers/providers.dart';
+import '../../../shared/utils/error_handler.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   final String email;
@@ -110,6 +111,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.error != null && next.error != previous?.error) {
+        ErrorHandler.showError(context, next.error);
+      }
+    });
     
     return Scaffold(
       body: Container(
@@ -209,15 +216,6 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                     ),
                   ),
                 ),
-                
-                if (authState.error != null) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    authState.error!,
-                    style: const TextStyle(color: AppColors.error),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
                 
                 const SizedBox(height: 24),
                 
