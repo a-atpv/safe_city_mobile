@@ -26,12 +26,20 @@ class ApiException implements Exception {
         break;
       case DioExceptionType.badResponse:
         final data = error.response?.data;
-        if (data is Map && data.containsKey('detail')) {
+        final statusCode = error.response?.statusCode;
+        
+        if (statusCode == 401) {
+          message = 'Сессия истекла. Пожалуйста, войдите снова.';
+        } else if (statusCode == 403) {
+          message = 'У вас нет доступа к этому ресурсу.';
+        } else if (statusCode == 429) {
+          message = 'Слишком много запросов. Попробуйте позже.';
+        } else if (data is Map && data.containsKey('detail')) {
           message = data['detail'].toString();
         } else if (data is Map && data.containsKey('message')) {
           message = data['message'].toString();
         } else {
-          message = 'Ошибка сервера: ${error.response?.statusCode}';
+          message = 'Ошибка сервера: $statusCode';
         }
         break;
       case DioExceptionType.cancel:
@@ -46,6 +54,12 @@ class ApiException implements Exception {
       statusCode: error.response?.statusCode,
       data: error.response?.data,
     );
+  }
+
+  String get shortMessage {
+    if (message.length <= 60) return message;
+    // Simple logic to truncate and add ellipsis for "short" version
+    return '${message.substring(0, 57)}...';
   }
   
   @override
