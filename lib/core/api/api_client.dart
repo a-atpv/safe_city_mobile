@@ -136,4 +136,8 @@ class ApiClient {
     final token = await _storage.read(key: AppConstants.accessTokenKey);
     return token != null;
   }
+
+  Future<String?> getAccessToken() async {
+    return await _storage.read(key: AppConstants.accessTokenKey);
+  }
 }
