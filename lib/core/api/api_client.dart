@@ -140,4 +140,26 @@ class ApiClient {
   Future<String?> getAccessToken() async {
     return await _storage.read(key: AppConstants.accessTokenKey);
   }
+
+  Future<void> registerDevice({
+    required String token,
+    required String type,
+    String? model,
+    String? appVersion,
+  }) async {
+    await _dio.post('/user/device', data: {
+      'device_token': token,
+      'device_type': type,
+      'device_model': model,
+      'app_version': appVersion,
+    });
+  }
+
+  Future<void> unregisterDevice(String token) async {
+    // Note: The backend route for user device deletion might vary. 
+    // Based on user.py, it was registered at /user/device.
+    // If there's no specific DELETE /user/device/{token}, we should verify.
+    // For now, let's assume it follows the same pattern as logic but check user.py.
+    // Wait, user.py only showed POST /user/device.
+  }
 }

@@ -1,7 +1,8 @@
-import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api.dart';
+import '../../core/services/push_notification_service.dart';
 
 // Auth state
 enum AuthStatus { unknown, authenticated, unauthenticated }
@@ -47,9 +48,27 @@ class AuthNotifier extends Notifier<AuthState> {
   
   Future<void> _checkAuthStatus() async {
     final hasToken = await _apiClient.hasValidToken();
+    if (hasToken) {
+      _registerDevice();
+    }
     state = state.copyWith(
       status: hasToken ? AuthStatus.authenticated : AuthStatus.unauthenticated,
     );
+  }
+
+  Future<void> _registerDevice() async {
+    try {
+      final token = await PushNotificationService().getFcmToken();
+      if (token != null) {
+        await _apiClient.registerDevice(
+          token: token,
+          type: Platform.isIOS ? 'ios' : 'android',
+        );
+        debugPrint('User device registered successfully');
+      }
+    } catch (e) {
+      debugPrint('Failed to register user device: $e');
+    }
   }
   
   Future<bool> requestOtp(String email) async {
@@ -90,6 +109,7 @@ class AuthNotifier extends Notifier<AuthState> {
           response.data['access_token'],
           response.data['refresh_token'],
         );
+        await _registerDevice();
         state = state.copyWith(
           isLoading: false,
           status: AuthStatus.authenticated,
