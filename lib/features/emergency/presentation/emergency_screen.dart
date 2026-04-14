@@ -50,6 +50,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
     
     _startTimer();
     _createEmergencyCall();
+    _listenToWebSockets();
   }
   
   @override
@@ -205,44 +206,71 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
   }
   
   void _pollStatus() {
-    _pollTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
+    // Increase polling interval as it's now a fallback for WebSockets
+    _pollTimer = Timer.periodic(const Duration(seconds: 20), (timer) async {
       await ref.read(emergencyProvider.notifier).getActiveCall();
-      final callState = ref.read(emergencyProvider).activeCall;
+      _handleCallStateUpdate();
+    });
+  }
+
+  void _handleCallStateUpdate() {
+    final callState = ref.read(emergencyProvider).activeCall;
+    
+    if (callState != null) {
+      final newStatus = _parseStatus(callState.status);
       
-      if (callState != null) {
-        final newStatus = _parseStatus(callState.status);
-        
-        if (newStatus != _status) {
-          setState(() => _status = newStatus);
-        }
-        
-        if (newStatus == EmergencyStatus.accepted || 
-            newStatus == EmergencyStatus.enRoute || 
-            newStatus == EmergencyStatus.arrived) {
-          // Could open chat popup or navigate to chat screen
-          // We will let the user navigate to chat screen manually or automatically
-          // for the sake of presentation we navigate:
-          if (mounted) {
-             timer.cancel();
-             _timer?.cancel();
-             _locationSubscription?.cancel();
-             context.push('/emergency/chat', extra: callState.id);
-          }
-        }
-        
-        if (newStatus == EmergencyStatus.completed) {
-          timer.cancel();
-          _timer?.cancel();
-          _locationSubscription?.cancel();
-          if (mounted) context.go('/emergency/review', extra: callState.id);
-        } else if (newStatus == EmergencyStatus.cancelledByUser ||
-                   newStatus == EmergencyStatus.cancelledBySystem) {
-          timer.cancel();
-          _timer?.cancel();
-          _locationSubscription?.cancel();
-          if (mounted) context.go('/home');
+      if (newStatus != _status) {
+        setState(() => _status = newStatus);
+      }
+      
+      if (newStatus == EmergencyStatus.accepted || 
+          newStatus == EmergencyStatus.enRoute || 
+          newStatus == EmergencyStatus.arrived) {
+        if (mounted) {
+           _pollTimer?.cancel();
+           _timer?.cancel();
+           _locationSubscription?.cancel();
+           context.push('/emergency/chat', extra: callState.id);
         }
       }
+      
+      if (newStatus == EmergencyStatus.completed) {
+        _pollTimer?.cancel();
+        _timer?.cancel();
+        _locationSubscription?.cancel();
+        if (mounted) context.go('/emergency/review', extra: callState.id);
+      } else if (newStatus == EmergencyStatus.cancelledByUser ||
+                 newStatus == EmergencyStatus.cancelledBySystem) {
+        _pollTimer?.cancel();
+        _timer?.cancel();
+        _locationSubscription?.cancel();
+        if (mounted) context.go('/home');
+      }
+    }
+  }
+  
+  void _listenToWebSockets() {
+    ref.listenManual(webSocketStreamProvider, (previous, next) {
+      next.whenData((message) {
+        final type = message['type'];
+        debugPrint('EmergencyScreen: Received WS message: $type');
+        
+        if (type == 'call_status_update') {
+          // Trigger a refresh from repository to get full object consistency
+          ref.read(emergencyProvider.notifier).getActiveCall().then((_) {
+            _handleCallStateUpdate();
+          });
+        } else if (type == 'call_cancelled') {
+          final reason = message['reason'] ?? 'cancelled';
+          debugPrint('EmergencyScreen: Call cancelled via WS: $reason');
+          if (mounted) {
+             ScaffoldMessenger.of(context).showSnackBar(
+               SnackBar(content: Text('Вызов отменен: $reason')),
+             );
+             context.go('/home');
+          }
+        }
+      });
     });
   }
   
