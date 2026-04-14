@@ -46,10 +46,17 @@ class AuthNotifier extends Notifier<AuthState> {
   }
   
   Future<void> _checkAuthStatus() async {
-    final hasToken = await _apiClient.hasValidToken();
-    state = state.copyWith(
-      status: hasToken ? AuthStatus.authenticated : AuthStatus.unauthenticated,
-    );
+    try {
+      final hasToken = await _apiClient.hasValidToken();
+      state = state.copyWith(
+        status: hasToken ? AuthStatus.authenticated : AuthStatus.unauthenticated,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Auth check failed: $e');
+      }
+      state = state.copyWith(status: AuthStatus.unauthenticated);
+    }
   }
   
   Future<bool> requestOtp(String email) async {
