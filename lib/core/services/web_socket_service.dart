@@ -126,4 +126,4 @@ class WebSocketService {
     _connectionController.close();
   }
 }
-}
+

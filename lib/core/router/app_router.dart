@@ -36,6 +36,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         return currentPath == '/' ? null : '/';
       }
 
+      // Auth check finished: splash must not remain visible.
+      if (currentPath == '/') {
+        return status == AuthStatus.authenticated ? '/home' : '/login';
+      }
+
       final isAuthenticated = status == AuthStatus.authenticated;
       final isOnAuthRoute =
           currentPath == '/login' || currentPath == '/otp' || currentPath == '/';
