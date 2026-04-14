@@ -14,10 +14,15 @@ import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
 import '../../shared/providers/auth_provider.dart';
 
+import 'package:flutter/material.dart';
+
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = Provider<GoRouter>((ref) {
   final authChangeNotifier = ref.watch(authChangeNotifierProvider);
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/',
     debugLogDiagnostics: true,
     refreshListenable: authChangeNotifier,

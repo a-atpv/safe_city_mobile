@@ -459,7 +459,39 @@ POST /emergency/call/{call_id}/review
 
 ## 6. Notifications
 
-### 6.1 Get Notifications
+### 6.1 Register Device (for Push Notifications)
+
+```
+POST /user/device
+```
+
+**Request:**
+```json
+{
+  "device_token": "fcm_token_..." ,
+  "device_type": "android",
+  "device_model": "Samsung S21",
+  "app_version": "1.0.0"
+}
+```
+
+### 6.2 Implementation
+
+The app uses `PushNotificationService` to initialize Firebase and listen for messages. When a notification is tapped, it uses the `rootNavigatorKey` to transition the UI.
+
+**Handling Logic:**
+```dart
+void _handleNotificationPayload(Map<String, dynamic> data) {
+  final context = rootNavigatorKey.currentContext;
+  if (context != null) {
+    if (data.containsKey('call_id')) {
+      GoRouter.of(context).push('/emergency');
+    }
+  }
+}
+```
+
+### 6.3 Get Notification History
 
 ```
 GET /notifications?limit=50&offset=0
