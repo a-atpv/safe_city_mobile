@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/presentation/login_screen.dart';
@@ -29,22 +28,20 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Auth check still in progress — stay on splash
       if (status == AuthStatus.unknown) {
-        debugPrint('Redirect: Auth check in progress, staying on splash');
         return currentPath == '/' ? null : '/';
       }
 
-      debugPrint('Redirect: status=$status, path=$currentPath');
-
       final isAuthenticated = status == AuthStatus.authenticated;
-      final isOnAuthRoute = currentPath == '/login' || currentPath == '/otp';
+      final isOnAuthRoute =
+          currentPath == '/login' || currentPath == '/otp' || currentPath == '/';
 
-      // Authenticated user trying to access auth routes or splash → go home
-      if (isAuthenticated && (isOnAuthRoute || currentPath == '/')) {
+      // Authenticated user trying to access auth routes → go home
+      if (isAuthenticated && isOnAuthRoute) {
         return '/home';
       }
 
-      // Unauthenticated user trying to access protected routes or at splash → go to login
-      if (!isAuthenticated && (!isOnAuthRoute || currentPath == '/')) {
+      // Unauthenticated user trying to access protected routes → go to login
+      if (!isAuthenticated && !isOnAuthRoute) {
         return '/login';
       }
 
@@ -126,4 +123,5 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
 
