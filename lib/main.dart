@@ -10,10 +10,14 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   try {
-    await Firebase.initializeApp();
-    await PushNotificationService().initialize();
+    // We add a 10s timeout to initialization to prevent the app from hanging 
+    // on the native splash screen indefinitely.
+    await Future.wait([
+      Firebase.initializeApp(),
+      PushNotificationService().initialize(),
+    ]).timeout(const Duration(seconds: 10));
   } catch (e) {
-    debugPrint('Firebase initialization failed: $e');
+    debugPrint('Service initialization failed or timed out: $e');
   }
 
   

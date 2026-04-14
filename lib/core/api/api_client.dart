@@ -8,7 +8,11 @@ class ApiClient {
   factory ApiClient() => _instance;
   
   late final Dio _dio;
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
+  );
   
   // Callback to trigger logout in the UI/Provider
   void Function()? onLogout;

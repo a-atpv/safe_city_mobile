@@ -26,13 +26,29 @@ class PushNotificationService {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    // 1. Request permissions
+    // 1. Request permissions (with timeout)
     NotificationSettings settings = await _fcm.requestPermission(
       alert: true,
       badge: true,
       sound: true,
       provisional: false,
-    );
+    ).timeout(const Duration(seconds: 5), onTimeout: () {
+      log('requestPermission timed out');
+      return const NotificationSettings(
+        alert: AppleNotificationSetting.notSupported,
+        badge: AppleNotificationSetting.notSupported,
+        sound: AppleNotificationSetting.notSupported,
+        announcement: AppleNotificationSetting.notSupported,
+        authorizationStatus: AuthorizationStatus.notDetermined,
+        lockScreen: AppleNotificationSetting.notSupported,
+        notificationCenter: AppleNotificationSetting.notSupported,
+        showPreviews: AppleShowPreviewSetting.notSupported,
+        timeSensitive: AppleNotificationSetting.notSupported,
+        criticalAlert: AppleNotificationSetting.notSupported,
+        carPlay: AppleNotificationSetting.notSupported,
+        providesAppNotificationSettings: AppleNotificationSetting.notSupported,
+      );
+    });
 
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
       log('User declined or has not accepted notification permissions');
@@ -92,11 +108,16 @@ class PushNotificationService {
       _handleNotificationPayload(message.data);
     });
 
-    // 7. Check final launch
-    RemoteMessage? initialMessage = await _fcm.getInitialMessage();
-    if (initialMessage != null) {
-      log('App launched from terminated state via notification');
-      _handleNotificationPayload(initialMessage.data);
+    // 7. Check final launch (with timeout - common hang point)
+    try {
+      RemoteMessage? initialMessage = await _fcm.getInitialMessage()
+          .timeout(const Duration(seconds: 3));
+      if (initialMessage != null) {
+        log('App launched from terminated state via notification');
+        _handleNotificationPayload(initialMessage.data);
+      }
+    } catch (e) {
+      log('Error or timeout getting initial message: $e');
     }
 
     _isInitialized = true;
