@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/api/api.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/emergency_call.dart';
 import '../../../shared/providers/providers.dart';
@@ -19,9 +23,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late AnimationController _pulseController;
   Timer? _searchTimer;
   Timer? _statusPollTimer;
+  StreamSubscription<Position>? _locationSubscription;
   bool _isPressed = false;
   bool _isSearchingEmergency = false;
+  bool _isLoading = false;
   int _elapsedSeconds = 0;
+  int? _callId;
+  String? _error;
   
   @override
   void initState() {
@@ -41,6 +49,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void dispose() {
     _searchTimer?.cancel();
     _statusPollTimer?.cancel();
+    _locationSubscription?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -53,12 +62,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       return;
     }
 
-    setState(() {
-      _isSearchingEmergency = true;
-      _elapsedSeconds = 0;
-    });
-    _startSearchTimer();
-    _startStatusPolling();
+    _createEmergencyCall();
   }
 
   void _startSearchTimer() {
@@ -69,13 +73,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     });
   }
 
-  void _cancelEmergencySearch() {
+  Future<void> _cancelEmergencySearch() async {
     _searchTimer?.cancel();
     _statusPollTimer?.cancel();
+    _locationSubscription?.cancel();
+    if (_callId != null) {
+      await ref.read(emergencyProvider.notifier).cancelCall(_callId!, null);
+    }
     setState(() {
       _isSearchingEmergency = false;
       _isPressed = false;
       _elapsedSeconds = 0;
+      _callId = null;
+      _isLoading = false;
     });
   }
 
@@ -86,6 +96,165 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (!mounted || !_isSearchingEmergency) return;
       ref.read(emergencyProvider.notifier).getActiveCall();
     });
+  }
+
+  Future<void> _createEmergencyCall() async {
+    setState(() {
+      _error = null;
+      _isLoading = true;
+      _isSearchingEmergency = true;
+      _elapsedSeconds = 0;
+    });
+
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _error =
+              'Службы геолокации отключены. Включите GPS в настройках устройства.';
+          _isLoading = false;
+          _isSearchingEmergency = false;
+        });
+        _showEmergencyError(_error!);
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.unableToDetermine) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _error =
+                'Доступ к геолокации запрещён. Разрешите доступ для вызова охраны.';
+            _isLoading = false;
+            _isSearchingEmergency = false;
+          });
+          _showEmergencyError(_error!);
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _error =
+              'Доступ к геолокации запрещён навсегда. Откройте настройки приложения и разрешите доступ к геолокации.';
+          _isLoading = false;
+          _isSearchingEmergency = false;
+        });
+        _showEmergencyError(_error!);
+        return;
+      }
+
+      Position? position = await Geolocator.getLastKnownPosition();
+      position ??= await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 25),
+        ),
+      );
+
+      final success = await ref.read(emergencyProvider.notifier).createCall(
+            position.latitude,
+            position.longitude,
+            null,
+          );
+
+      if (success) {
+        final activeCall = ref.read(emergencyProvider).activeCall;
+        setState(() {
+          _callId = activeCall?.id;
+          _isLoading = false;
+        });
+        _startSearchTimer();
+        _startStatusPolling();
+        _startLocationUpdates();
+      } else {
+        setState(() {
+          _error =
+              ref.read(emergencyProvider).error ?? 'Не удалось создать вызов.';
+          _isLoading = false;
+          _isSearchingEmergency = false;
+        });
+        _showEmergencyError(_error!);
+      }
+    } on ApiException catch (e) {
+      setState(() {
+        _error = e.message;
+        _isLoading = false;
+        _isSearchingEmergency = false;
+      });
+      _showEmergencyError(_error!);
+    } on DioException catch (e) {
+      final apiError = ApiException.fromDioError(e);
+      setState(() {
+        _error = kDebugMode
+            ? '${apiError.message} (status: ${apiError.statusCode})'
+            : apiError.message;
+        _isLoading = false;
+        _isSearchingEmergency = false;
+      });
+      _showEmergencyError(_error!);
+    } on LocationServiceDisabledException catch (_) {
+      setState(() {
+        _error =
+            'Службы геолокации отключены. Включите GPS в настройках устройства.';
+        _isLoading = false;
+        _isSearchingEmergency = false;
+      });
+      _showEmergencyError(_error!);
+    } on PermissionDeniedException catch (_) {
+      setState(() {
+        _error =
+            'Доступ к геолокации запрещён. Разрешите доступ для вызова охраны.';
+        _isLoading = false;
+        _isSearchingEmergency = false;
+      });
+      _showEmergencyError(_error!);
+    } on TimeoutException catch (_) {
+      setState(() {
+        _error =
+            'Не удалось определить местоположение за отведенное время. Проверьте GPS и повторите.';
+        _isLoading = false;
+        _isSearchingEmergency = false;
+      });
+      _showEmergencyError(_error!);
+    } catch (e) {
+      setState(() {
+        _error = kDebugMode
+            ? 'Не удалось определить местоположение: $e'
+            : 'Не удалось определить местоположение. Проверьте настройки GPS.';
+        _isLoading = false;
+        _isSearchingEmergency = false;
+      });
+      _showEmergencyError(_error!);
+    }
+  }
+
+  void _startLocationUpdates() {
+    _locationSubscription?.cancel();
+    const locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 10,
+    );
+
+    _locationSubscription = Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).listen((position) {
+      if (_isSearchingEmergency) {
+        ref.read(userProvider.notifier).updateLocation(
+              position.latitude,
+              position.longitude,
+            );
+      }
+    });
+  }
+
+  void _showEmergencyError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   String get _formattedTime {
@@ -443,7 +612,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             child: SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: _cancelEmergencySearch,
+              onPressed: () => _cancelEmergencySearch(),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.error,
                   side: const BorderSide(color: AppColors.error),
