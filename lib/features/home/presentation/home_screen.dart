@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/models/emergency_call.dart';
 import '../../../shared/providers/providers.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -14,7 +17,11 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> 
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
+  Timer? _searchTimer;
+  Timer? _statusPollTimer;
   bool _isPressed = false;
+  bool _isSearchingEmergency = false;
+  int _elapsedSeconds = 0;
   
   @override
   void initState() {
@@ -32,6 +39,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   
   @override
   void dispose() {
+    _searchTimer?.cancel();
+    _statusPollTimer?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -43,8 +52,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _showSubscriptionDialog();
       return;
     }
-    
-    context.push('/emergency');
+
+    setState(() {
+      _isSearchingEmergency = true;
+      _elapsedSeconds = 0;
+    });
+    _startSearchTimer();
+    _startStatusPolling();
+  }
+
+  void _startSearchTimer() {
+    _searchTimer?.cancel();
+    _searchTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || !_isSearchingEmergency) return;
+      setState(() => _elapsedSeconds++);
+    });
+  }
+
+  void _cancelEmergencySearch() {
+    _searchTimer?.cancel();
+    _statusPollTimer?.cancel();
+    setState(() {
+      _isSearchingEmergency = false;
+      _isPressed = false;
+      _elapsedSeconds = 0;
+    });
+  }
+
+  void _startStatusPolling() {
+    _statusPollTimer?.cancel();
+    ref.read(emergencyProvider.notifier).getActiveCall();
+    _statusPollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || !_isSearchingEmergency) return;
+      ref.read(emergencyProvider.notifier).getActiveCall();
+    });
+  }
+
+  String get _formattedTime {
+    final minutes = (_elapsedSeconds ~/ 60).toString().padLeft(2, '0');
+    final seconds = (_elapsedSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
   
   void _showSubscriptionDialog() {
@@ -76,6 +123,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   Widget build(BuildContext context) {
     final userState = ref.watch(userProvider);
+    final emergencyState = ref.watch(emergencyProvider);
     final user = userState.user;
     final hasSubscription = user?.hasActiveSubscription ?? false;
     
@@ -83,167 +131,140 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       decoration: const BoxDecoration(
         gradient: AppColors.backgroundGradient,
       ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.shield,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Safe City',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: (hasSubscription 
-                          ? AppColors.success 
-                          : AppColors.textSecondary).withAlpha(51),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          hasSubscription ? Icons.check_circle : Icons.cancel,
-                          color: hasSubscription 
-                              ? AppColors.success 
-                              : AppColors.textSecondary,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          hasSubscription ? 'Активна' : 'Не активна',
-                          style: TextStyle(
-                            color: hasSubscription 
-                                ? AppColors.success 
-                                : AppColors.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            // SOS Button
-            Expanded(
-              child: Center(
-                child: GestureDetector(
-                  onTapDown: (_) => setState(() => _isPressed = true),
-                  onTapUp: (_) {
-                    setState(() => _isPressed = false);
-                    _onSosPressed();
-                  },
-                  onTapCancel: () => setState(() => _isPressed = false),
-                  child: AnimatedBuilder(
-                    animation: _pulseController,
-                    builder: (context, child) {
-                      return Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // Pulse rings
-                          ...List.generate(3, (index) {
-                            final delay = index * 0.33;
-                            final value = (_pulseController.value + delay) % 1.0;
-                            return Container(
-                              width: 200 + (value * 80),
-                              height: 200 + (value * 80),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.sosRed.withAlpha(
-                                    (76 * (1 - value)).toInt(),
-                                  ),
-                                  width: 2,
-                                ),
-                              ),
-                            );
-                          }),
-                          
-                          // Glow
-                          Container(
-                            width: 200,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.sosRed.withAlpha(102),
-                                  blurRadius: 40,
-                                  spreadRadius: 10,
-                                ),
-                              ],
-                            ),
-                          ),
-                          
-                          // Button
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 100),
-                            width: _isPressed ? 180 : 200,
-                            height: _isPressed ? 180 : 200,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(
-                                colors: [
-                                  AppColors.sosRed,
-                                  AppColors.sosRed.withRed(180),
-                                ],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.sosRed.withAlpha(153),
-                                  blurRadius: 30,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'SOS',
-                                style: TextStyle(
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  letterSpacing: 4,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 1,
+                child: SizedBox(
+                  width: 220,
+                  height: 220,
+                  child: SvgPicture.asset(
+                    'assets/images/home_dots_decoration.svg',
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
             ),
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 1,
+                child: SvgPicture.asset(
+                  'assets/images/home_line_decoration.svg',
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: _isSearchingEmergency
+                ? _buildSearchingState(hasSubscription, emergencyState.activeCall)
+                : _buildDefaultState(hasSubscription),
+          ),
+        ]
+      ),
+    );
+  }
+
+  Widget _buildDefaultState(bool hasSubscription) {
+    return Column(
+      children: [
+          _buildHeader(hasSubscription),
+            
+            // SOS Button
+          Expanded(
+            child: Center(
+              child: GestureDetector(
+                onTapDown: (_) => setState(() => _isPressed = true),
+                onTapUp: (_) {
+                  setState(() => _isPressed = false);
+                  _onSosPressed();
+                },
+                onTapCancel: () => setState(() => _isPressed = false),
+                child: AnimatedBuilder(
+                  animation: _pulseController,
+                  builder: (context, child) {
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Pulse rings
+                        ...List.generate(3, (index) {
+                          final delay = index * 0.33;
+                          final value = (_pulseController.value + delay) % 1.0;
+                          return Container(
+                            width: 200 + (value * 80),
+                            height: 200 + (value * 80),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.sosRed.withAlpha(
+                                  (76 * (1 - value)).toInt(),
+                                ),
+                                width: 2,
+                              ),
+                            ),
+                          );
+                        }),
+
+                        // Glow
+                        Container(
+                          width: 200,
+                          height: 200,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.sosRed.withAlpha(102),
+                                blurRadius: 40,
+                                spreadRadius: 10,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Button
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 100),
+                          width: _isPressed ? 180 : 200,
+                          height: _isPressed ? 180 : 200,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                AppColors.sosRed,
+                                AppColors.sosRed.withRed(180),
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.sosRed.withAlpha(153),
+                                blurRadius: 30,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'SOS',
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 4,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
             
             // Instructions
             Padding(
@@ -256,8 +277,372 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
             
             const SizedBox(height: 80),
-          ],
+      ],
+    );
+  }
+
+  Widget _buildSearchingState(bool hasSubscription, EmergencyCall? activeCall) {
+    final isAccepted = _isActiveGuardStatus(activeCall?.status);
+    final radarColor = isAccepted ? AppColors.success : AppColors.sosRed;
+
+    return Column(
+      children: [
+        _buildHeader(hasSubscription),
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedBuilder(
+                animation: _pulseController,
+                builder: (context, _) => SizedBox(
+                  width: 350,
+                  height: 350,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Static glow behind the whole searching radar area.
+                      Container(
+                        width: 280,
+                        height: 280,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: radarColor.withAlpha(70),
+                              blurRadius: 120,
+                              spreadRadius: 35,
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Crosshair behind radar rings (same size as largest ring).
+                      SizedBox(
+                        width: 270,
+                        height: 270,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              width: 270,
+                              height: 1,
+                              color: radarColor.withAlpha(36),
+                            ),
+                            Container(
+                              width: 1,
+                              height: 270,
+                              color: radarColor.withAlpha(36),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ...List.generate(7, (index) {
+                        final delay = (16 - index) * 0.12;
+                        final value = (_pulseController.value + delay) % 1.0;
+                        final size = (90.0 + (index * 30)) + (value * 8);
+                        return Container(
+                          width: size,
+                          height: size,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: radarColor
+                                  .withAlpha((80 * (1 - value)).toInt()),
+                              width: 1,
+                            ),
+                          ),
+                        );
+                      }),
+                      Transform.rotate(
+                        angle: _pulseController.value * 6.28318,
+                        child: Container(
+                          width: 270,
+                          height: 270,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: SweepGradient(
+                              colors: [
+                                Colors.transparent,
+                                radarColor.withAlpha(160),
+                                radarColor.withAlpha(80),
+                                Colors.transparent,
+                              ],
+                              stops: const [0.0, 0.7, 0.4, 0.2],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 185,
+                        height: 185,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: radarColor.withAlpha(140),
+                            width: 6,
+                          ),
+                        ),
+                        child: Container(
+                          width: 185,
+                          height: 185,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.background.withAlpha(140),
+                              width: 6,
+                            ),
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  isAccepted ? 'В работе' : 'Поиск\nохраны...',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 40 / 2,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  _formattedTime,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 30 / 2,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 44),
+              if (!isAccepted)
+                Text(
+                  'Ближайшие службы\nоповещены',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                        height: 1.5,
+                      ),
+                ),
+            ],
+          ),
         ),
+        if (isAccepted && activeCall != null)
+          _buildCurrentCallWidget(activeCall)
+        else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: _cancelEmergencySearch,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  side: const BorderSide(color: AppColors.error),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  backgroundColor: AppColors.error.withAlpha(15),
+                ),
+                child: const Text(
+                  'Отменить вызов',
+                  style:
+                      TextStyle(fontWeight: FontWeight.w600, fontSize: 26 / 2),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  bool _isActiveGuardStatus(String? status) {
+    return status == 'accepted' || status == 'en_route' || status == 'arrived';
+  }
+
+  Widget _buildCurrentCallWidget(EmergencyCall call) {
+    final companyName = call.securityCompany?.name ?? 'Охрана назначена';
+    final companyPhone = call.securityCompany?.phone;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withAlpha(90),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.surfaceBorder),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white24),
+                  color: AppColors.backgroundLight,
+                ),
+                child: const Icon(Icons.person, color: AppColors.textPrimary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      companyName,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Row(
+                      children: [
+                        Icon(Icons.star, color: AppColors.warning, size: 16),
+                        SizedBox(width: 4),
+                        Text(
+                          '4.8 (127 отзывов)',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    if (call.id != 0) {
+                      context.push('/emergency/chat', extra: call.id);
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(28),
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: const BoxDecoration(
+                      color: Color(0x2B22C55E),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.call, color: AppColors.success),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (companyPhone != null && companyPhone.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                companyPhone,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => context.push('/emergency/chat', extra: call.id),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.backgroundLight.withAlpha(180),
+                foregroundColor: AppColors.textPrimary,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text(
+                'Детали вызова',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(bool hasSubscription) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.shield,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            'Safe City',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: (hasSubscription ? AppColors.success : AppColors.textSecondary)
+                  .withAlpha(51),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  hasSubscription ? Icons.check_circle : Icons.cancel,
+                  color:
+                      hasSubscription ? AppColors.success : AppColors.textSecondary,
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  hasSubscription ? 'Активна' : 'Не активна',
+                  style: TextStyle(
+                    color: hasSubscription
+                        ? AppColors.success
+                        : AppColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
