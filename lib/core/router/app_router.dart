@@ -77,33 +77,46 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       
-      ShellRoute(
-        builder: (context, state, child) => MainScaffold(child: child),
-        routes: [
-          GoRoute(
-            path: '/home',
-            name: 'home',
-            builder: (context, state) => const HomeScreen(),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            MainScaffold(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/home',
+                name: 'home',
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/history',
-            name: 'history',
-            builder: (context, state) => const HistoryScreen(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/history',
+                name: 'history',
+                builder: (context, state) => const HistoryScreen(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/profile',
-            name: 'profile',
-            builder: (context, state) => const ProfileScreen(),
-          ),
-          GoRoute(
-            path: '/notifications',
-            name: 'notifications',
-            builder: (context, state) => const NotificationsScreen(),
-          ),
-          GoRoute(
-            path: '/settings',
-            name: 'settings',
-            builder: (context, state) => const SettingsScreen(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/profile',
+                name: 'profile',
+                builder: (context, state) => const ProfileScreen(),
+              ),
+              GoRoute(
+                path: '/notifications',
+                name: 'notifications',
+                builder: (context, state) => const NotificationsScreen(),
+              ),
+              GoRoute(
+                path: '/settings',
+                name: 'settings',
+                builder: (context, state) => const SettingsScreen(),
+              ),
+            ],
           ),
         ],
       ),

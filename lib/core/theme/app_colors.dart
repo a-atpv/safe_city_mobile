@@ -14,8 +14,8 @@ class AppColors {
   static const Color backgroundCard = Color(0xFF1E3A5F);
   
   // Surface (glassmorphism)
-  static const Color surface = Color(0x33FFFFFF);
-  static const Color surfaceBorder = Color(0x44FFFFFF);
+  static const Color surface = Color(0x06FFFFFF);
+  static const Color surfaceBorder = Color(0x10FFFFFF);
   
   // Text
   static const Color textPrimary = Colors.white;
