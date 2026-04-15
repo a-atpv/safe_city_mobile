@@ -18,13 +18,15 @@ class PushNotificationService {
   factory PushNotificationService() => _instance;
   PushNotificationService._internal();
 
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  late final FirebaseMessaging _fcm;
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
 
   Future<void> initialize() async {
     if (_isInitialized) return;
+
+    _fcm = FirebaseMessaging.instance;
 
     // 1. Request permissions (with timeout)
     NotificationSettings settings = await _fcm.requestPermission(
