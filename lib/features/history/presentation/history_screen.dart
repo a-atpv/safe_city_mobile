@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/api/api.dart';
 import '../../../shared/widgets/widgets.dart';
@@ -16,18 +17,44 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   bool _isLoading = true;
   String? _error;
   String _filter = 'all';
+  bool _isHistoryLocationActive = false;
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
+  RouteInformationProvider? _routeInformationProvider;
   
   @override
   void initState() {
     super.initState();
     _fetchHistory();
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = GoRouter.of(context).routeInformationProvider;
+    if (_routeInformationProvider != provider) {
+      _routeInformationProvider?.removeListener(_onRouteInformationChanged);
+      _routeInformationProvider = provider;
+      _routeInformationProvider?.addListener(_onRouteInformationChanged);
+      _onRouteInformationChanged();
+    }
+  }
+
+  @override
+  void dispose() {
+    _routeInformationProvider?.removeListener(_onRouteInformationChanged);
+    super.dispose();
+  }
   
-  Future<void> _fetchHistory() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  Future<void> _fetchHistory({bool showLoader = true}) async {
+    if (showLoader) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    } else {
+      setState(() => _error = null);
+    }
     
     try {
       final response = await ApiClient().dio.get('/emergency/history');
@@ -48,6 +75,28 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         _error = 'Ошибка загрузки истории';
         _isLoading = false;
       });
+    }
+  }
+
+  void _triggerTabRefresh() {
+    if (_calls.isNotEmpty) {
+      _refreshIndicatorKey.currentState?.show();
+    } else {
+      _fetchHistory();
+    }
+  }
+
+  void _onRouteInformationChanged() {
+    final location = _routeInformationProvider?.value.uri.path ?? '';
+    final isHistoryLocation = location.startsWith('/history');
+
+    if (isHistoryLocation && !_isHistoryLocationActive) {
+      _isHistoryLocationActive = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _triggerTabRefresh();
+      });
+    } else if (!isHistoryLocation && _isHistoryLocationActive) {
+      _isHistoryLocationActive = false;
     }
   }
   
@@ -134,6 +183,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                               ),
                             )
                           : RefreshIndicator(
+                              key: _refreshIndicatorKey,
                               onRefresh: _fetchHistory,
                               child: ListView.builder(
                                 padding: const EdgeInsets.symmetric(horizontal: 20),

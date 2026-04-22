@@ -758,17 +758,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
+          SizedBox(
+            width: 36,
+            height: 42,
+            child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.shield,
-              color: Colors.white,
-              size: 24,
+              child: Image.asset(
+                'assets/icons/safe_city_shield.png',
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(width: 12),
