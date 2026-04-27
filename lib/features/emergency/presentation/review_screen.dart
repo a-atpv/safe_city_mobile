@@ -56,11 +56,20 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight - 48),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
               const Icon(Icons.check_circle_outline, color: AppColors.success, size: 80),
               const SizedBox(height: 24),
               const Text(
@@ -113,8 +122,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 onPressed: _skip,
                 child: const Text('Пропустить', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
               ),
-            ],
-          ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

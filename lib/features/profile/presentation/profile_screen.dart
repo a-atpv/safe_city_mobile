@@ -205,26 +205,28 @@ class ProfileScreen extends ConsumerWidget {
         backgroundColor: AppColors.backgroundLight,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Редактировать профиль'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Имя',
-                hintText: 'Введите ваше имя',
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Имя',
+                  hintText: 'Введите ваше имя',
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Телефон',
-                hintText: '+7 (777) 123-45-67',
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Телефон',
+                  hintText: '+7 (777) 123-45-67',
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(

@@ -166,11 +166,17 @@ class _CallChatScreenState extends ConsumerState<CallChatScreen> {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              12,
+              16,
+              12 + MediaQuery.of(context).viewInsets.bottom,
+            ),
             decoration: BoxDecoration(
               color: AppColors.background,
             ),
             child: SafeArea(
+              top: false,
               child: Row(
                 children: [
                   Expanded(
