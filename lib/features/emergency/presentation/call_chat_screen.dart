@@ -80,6 +80,36 @@ class _CallChatScreenState extends ConsumerState<CallChatScreen> {
     }
   }
 
+  Future<void> _cancelCall() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.backgroundLight,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Отменить вызов?'),
+        content: const Text('Вы уверены, что хотите отменить вызов охраны?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Нет'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Да, отменить'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed == true) {
+      final success = await ref.read(emergencyProvider.notifier).cancelCall(widget.callId, null);
+      if (success && mounted) {
+        context.go('/home');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(emergencyProvider);
@@ -90,6 +120,13 @@ class _CallChatScreenState extends ConsumerState<CallChatScreen> {
         title: const Text('Чат с экипажем'),
         backgroundColor: AppColors.backgroundLight,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
+            onPressed: _cancelCall,
+            tooltip: 'Отменить вызов',
+          ),
+        ],
       ),
       backgroundColor: AppColors.background,
       body: Column(

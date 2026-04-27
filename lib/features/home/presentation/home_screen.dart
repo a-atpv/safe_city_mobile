@@ -74,6 +74,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _cancelEmergencySearch() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.backgroundLight,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Отменить вызов?'),
+        content: const Text('Вы уверены, что хотите отменить вызов охраны?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Нет'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Да, отменить'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     _searchTimer?.cancel();
     _statusPollTimer?.cancel();
     _locationSubscription?.cancel();
@@ -730,23 +753,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
           ],
           const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => context.push('/emergency/chat', extra: call.id),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.backgroundLight.withAlpha(180),
-                foregroundColor: AppColors.textPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => context.push('/emergency/chat', extra: call.id),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.backgroundLight.withAlpha(180),
+                    foregroundColor: AppColors.textPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'Детали вызова',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
-              child: const Text(
-                'Детали вызова',
-                style: TextStyle(fontWeight: FontWeight.w700),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: () => _cancelEmergencySearch(),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  side: const BorderSide(color: AppColors.error),
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Icon(Icons.close),
               ),
-            ),
+            ],
           ),
         ],
       ),
