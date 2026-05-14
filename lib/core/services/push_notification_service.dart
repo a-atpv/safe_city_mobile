@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
@@ -25,6 +26,11 @@ class PushNotificationService {
 
   Future<void> initialize() async {
     if (_isInitialized) return;
+
+    if (Firebase.apps.isEmpty) {
+      log('PushNotificationService: skip init, no default Firebase app');
+      return;
+    }
 
     _fcm = FirebaseMessaging.instance;
 
@@ -132,7 +138,11 @@ class PushNotificationService {
       return null;
     }
     try {
-      String? token = await _fcm.getToken();
+      if (Firebase.apps.isEmpty) {
+        log('getFcmToken: no Firebase app (init failed or missing config)');
+        return null;
+      }
+      final token = await FirebaseMessaging.instance.getToken();
       log('FCM Token: $token');
       return token;
     } catch (e) {

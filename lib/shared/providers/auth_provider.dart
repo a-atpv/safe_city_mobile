@@ -47,7 +47,12 @@ class AuthNotifier extends Notifier<AuthState> {
   }
   
   Future<void> _checkAuthStatus() async {
-    final hasToken = await _apiClient.hasValidToken();
+    bool hasToken = false;
+    try {
+      hasToken = await _apiClient.hasValidToken();
+    } catch (e, st) {
+      debugPrint('Auth token read failed: $e\n$st');
+    }
     if (hasToken) {
       _registerDevice();
     }
