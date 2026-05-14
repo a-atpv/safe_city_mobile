@@ -127,6 +127,10 @@ class PushNotificationService {
   }
 
   Future<String?> getFcmToken() async {
+    if (!_isInitialized) {
+      log('PushNotificationService not initialized — skipping getFcmToken');
+      return null;
+    }
     try {
       String? token = await _fcm.getToken();
       log('FCM Token: $token');

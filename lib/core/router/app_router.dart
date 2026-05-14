@@ -131,7 +131,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/emergency/chat',
         name: 'emergency_chat',
         builder: (context, state) {
-          final callId = state.extra as int;
+          final callId = state.extra as int? ?? 0;
           return CallChatScreen(callId: callId);
         },
       ),
@@ -139,7 +139,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/emergency/review',
         name: 'emergency_review',
         builder: (context, state) {
-          final callId = state.extra as int;
+          final callId = state.extra as int? ?? 0;
           return ReviewScreen(callId: callId);
         },
       ),
