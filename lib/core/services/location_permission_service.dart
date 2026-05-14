@@ -2,8 +2,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geolocator_android/geolocator_android.dart';
-import 'package:geolocator_apple/geolocator_apple.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../theme/app_colors.dart';
 
@@ -150,7 +148,7 @@ class LocationPermissionService {
     } else if (Platform.isIOS) {
       return AppleSettings(
         accuracy: LocationAccuracy.high,
-        activityType: ActivityType.emergencyCall,
+        activityType: ActivityType.other,
         distanceFilter: 10,
         pauseLocationUpdatesAutomatically: false,
         showBackgroundLocationIndicator: true,

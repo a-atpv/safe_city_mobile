@@ -27,7 +27,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   StreamSubscription<Position>? _locationSubscription;
   bool _isPressed = false;
   bool _isSearchingEmergency = false;
-  bool _isLoading = false;
   int _elapsedSeconds = 0;
   int? _callId;
   String? _error;
@@ -109,7 +108,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _isPressed = false;
       _elapsedSeconds = 0;
       _callId = null;
-      _isLoading = false;
     });
   }
 
@@ -125,7 +123,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _createEmergencyCall() async {
     setState(() {
       _error = null;
-      _isLoading = true;
       _isSearchingEmergency = true;
       _elapsedSeconds = 0;
     });
@@ -134,7 +131,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       final hasPermissions = await LocationPermissionService.checkAndRequestPermissions(context);
       if (!hasPermissions) {
         setState(() {
-          _isLoading = false;
           _isSearchingEmergency = false;
         });
         return;
@@ -158,7 +154,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         final activeCall = ref.read(emergencyProvider).activeCall;
         setState(() {
           _callId = activeCall?.id;
-          _isLoading = false;
         });
         _startSearchTimer();
         _startStatusPolling();
@@ -167,7 +162,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         setState(() {
           _error =
               ref.read(emergencyProvider).error ?? 'Не удалось создать вызов.';
-          _isLoading = false;
           _isSearchingEmergency = false;
         });
         _showEmergencyError(_error!);
@@ -175,7 +169,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     } on ApiException catch (e) {
       setState(() {
         _error = e.message;
-        _isLoading = false;
         _isSearchingEmergency = false;
       });
       _showEmergencyError(_error!);
@@ -185,7 +178,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _error = kDebugMode
             ? '${apiError.message} (status: ${apiError.statusCode})'
             : apiError.message;
-        _isLoading = false;
         _isSearchingEmergency = false;
       });
       _showEmergencyError(_error!);
@@ -193,7 +185,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       setState(() {
         _error =
             'Службы геолокации отключены. Включите GPS в настройках устройства.';
-        _isLoading = false;
         _isSearchingEmergency = false;
       });
       _showEmergencyError(_error!);
@@ -201,7 +192,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       setState(() {
         _error =
             'Доступ к геолокации запрещён. Разрешите доступ для вызова охраны.';
-        _isLoading = false;
         _isSearchingEmergency = false;
       });
       _showEmergencyError(_error!);
@@ -209,7 +199,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       setState(() {
         _error =
             'Не удалось определить местоположение за отведенное время. Проверьте GPS и повторите.';
-        _isLoading = false;
         _isSearchingEmergency = false;
       });
       _showEmergencyError(_error!);
@@ -218,7 +207,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _error = kDebugMode
             ? 'Не удалось определить местоположение: $e'
             : 'Не удалось определить местоположение. Проверьте настройки GPS.';
-        _isLoading = false;
         _isSearchingEmergency = false;
       });
       _showEmergencyError(_error!);
