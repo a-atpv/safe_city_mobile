@@ -1,4 +1,4 @@
-package com.safecity.safe_city
+package com.safeCity.appname
 
 import io.flutter.embedding.android.FlutterActivity
 
