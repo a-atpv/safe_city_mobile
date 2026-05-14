@@ -8,55 +8,109 @@ import '../theme/app_colors.dart';
 class LocationPermissionService {
   LocationPermissionService._();
 
-  /// Выполняет двухэтапный запрос разрешений с Prominent Disclosure, согласно требованиям Google Play.
-  /// Возвращает true, если все необходимые разрешения получены (или предоставлен foreground доступ).
+  /// Главная точка входа. Выбирает логику по платформе:
+  ///   - iOS: стандартный запрос через geolocator (без Prominent Disclosure — не требуется Apple)
+  ///   - Android: двухэтапный запрос с обязательным диалогом раскрытия (требование Google Play)
+  ///
+  /// Возвращает true, если foreground-доступ к геолокации получен.
   static Future<bool> checkAndRequestPermissions(BuildContext context) async {
-    // 1. Проверяем включены ли службы геолокации
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (Platform.isIOS || kIsWeb) {
+      return _checkAndRequestIOS(context);
+    }
+    return _checkAndRequestAndroid(context);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // iOS: простая логика без Prominent Disclosure
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<bool> _checkAndRequestIOS(BuildContext context) async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Службы геолокации отключены. Включите GPS в настройках устройства.')),
+          const SnackBar(
+            content: Text('Службы геолокации отключены. Включите GPS в настройках устройства.'),
+          ),
         );
       }
       return false;
     }
 
-    // 2. Проверяем текущий статус Permission.locationWhenInUse
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      if (context.mounted && permission == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Доступ к геолокации запрещён. Откройте настройки приложения.'),
+            action: SnackBarAction(
+              label: 'Настройки',
+              onPressed: Geolocator.openAppSettings,
+            ),
+          ),
+        );
+      }
+      return false;
+    }
+
+    return true;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Android: двухэтапный запрос с Prominent Disclosure (требование Google Play)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<bool> _checkAndRequestAndroid(BuildContext context) async {
+    // 1. Проверяем, включены ли службы геолокации
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Службы геолокации отключены. Включите GPS в настройках устройства.'),
+          ),
+        );
+      }
+      return false;
+    }
+
+    // 2. Проверяем Foreground-разрешение
     var whenInUseStatus = await Permission.locationWhenInUse.status;
 
     if (!whenInUseStatus.isGranted) {
-      // Показываем Prominent Disclosure ДО системного запроса
+      // Prominent Disclosure ОБЯЗАТЕЛЕН перед системным запросом (Google Play policy)
       if (!context.mounted) return false;
-      bool? accepted = await showProminentDisclosure(context);
-      if (accepted != true) {
-        return false;
-      }
+      final accepted = await showProminentDisclosure(context);
+      if (accepted != true) return false;
 
-      // После принятия Prominent Disclosure запрашиваем Foreground разрешение
       whenInUseStatus = await Permission.locationWhenInUse.request();
-      if (!whenInUseStatus.isGranted) {
-        return false;
-      }
+      if (!whenInUseStatus.isGranted) return false;
     }
 
-    // 3. Если мы на Android 11+ (API 30+), проверяем фоновое разрешение (locationAlways)
-    if (Platform.isAndroid) {
-      var alwaysStatus = await Permission.locationAlways.status;
-      if (!alwaysStatus.isGranted) {
-        if (!context.mounted) return true; // Мы имеем хотя бы Foreground
-        bool? goToSettings = await _showBackgroundPermissionExplanation(context);
-        if (goToSettings == true) {
-          // Запрашиваем locationAlways. В Android 11+ это перенаправит пользователя в настройки
-          alwaysStatus = await Permission.locationAlways.request();
-        }
+    // 3. Запрашиваем Background-разрешение (Allow all the time).
+    //    В Android 11+ нельзя запросить напрямую — только через настройки.
+    final alwaysStatus = await Permission.locationAlways.status;
+    if (!alwaysStatus.isGranted && context.mounted) {
+      final goToSettings = await _showBackgroundPermissionExplanation(context);
+      if (goToSettings == true) {
+        await Permission.locationAlways.request();
       }
     }
 
     return true;
   }
 
-  /// Диалог видного раскрытия (Prominent Disclosure)
+  // ─────────────────────────────────────────────────────────────────────────
+  // Диалоги (только для Android)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Диалог видного раскрытия (Prominent Disclosure) — требование Google Play.
   static Future<bool?> showProminentDisclosure(BuildContext context) {
     return showDialog<bool>(
       context: context,
@@ -91,7 +145,7 @@ class LocationPermissionService {
     );
   }
 
-  /// Диалог с объяснением необходимости выбора "Разрешить в любом режиме" (Allow all the time)
+  /// Диалог с объяснением необходимости выбора «Разрешить в любом режиме».
   static Future<bool?> _showBackgroundPermissionExplanation(BuildContext context) {
     return showDialog<bool>(
       context: context,
@@ -104,7 +158,7 @@ class LocationPermissionService {
           style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
         content: const Text(
-          'Для надежной отправки сигнала SOS и передачи координат охране при свернутом или закрытом приложении, пожалуйста, выберите «Разрешить в любом режиме» (Allow all the time) в настройках разрешений.',
+          'Для надежной отправки сигнала SOS при свернутом или закрытом приложении, пожалуйста, выберите «Разрешить в любом режиме» (Allow all the time) в настройках разрешений.',
           style: TextStyle(color: AppColors.textPrimary, fontSize: 15, height: 1.4),
         ),
         actions: [
@@ -126,13 +180,13 @@ class LocationPermissionService {
     );
   }
 
-  /// Настройки для фоновой работы геолокации
+  // ─────────────────────────────────────────────────────────────────────────
+  // Настройки потока геолокации (платформо-зависимые)
+  // ─────────────────────────────────────────────────────────────────────────
+
   static LocationSettings getLocationSettings() {
     if (kIsWeb) {
-      return const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
-      );
+      return const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10);
     }
     if (Platform.isAndroid) {
       return AndroidSettings(
@@ -153,11 +207,7 @@ class LocationPermissionService {
         pauseLocationUpdatesAutomatically: false,
         showBackgroundLocationIndicator: true,
       );
-    } else {
-      return const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
-      );
     }
+    return const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10);
   }
 }
