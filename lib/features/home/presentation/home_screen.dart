@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/api/api.dart';
+import '../../../core/services/location_permission_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/emergency_call.dart';
 import '../../../shared/providers/providers.dart';
@@ -130,42 +131,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     });
 
     try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
+      final hasPermissions = await LocationPermissionService.checkAndRequestPermissions(context);
+      if (!hasPermissions) {
         setState(() {
-          _error =
-              'Службы геолокации отключены. Включите GPS в настройках устройства.';
           _isLoading = false;
           _isSearchingEmergency = false;
         });
-        _showEmergencyError(_error!);
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.unableToDetermine) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          setState(() {
-            _error =
-                'Доступ к геолокации запрещён. Разрешите доступ для вызова охраны.';
-            _isLoading = false;
-            _isSearchingEmergency = false;
-          });
-          _showEmergencyError(_error!);
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        setState(() {
-          _error =
-              'Доступ к геолокации запрещён навсегда. Откройте настройки приложения и разрешите доступ к геолокации.';
-          _isLoading = false;
-          _isSearchingEmergency = false;
-        });
-        _showEmergencyError(_error!);
         return;
       }
 
@@ -256,10 +227,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   void _startLocationUpdates() {
     _locationSubscription?.cancel();
-    const locationSettings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 10,
-    );
+    final locationSettings = LocationPermissionService.getLocationSettings();
 
     _locationSubscription = Geolocator.getPositionStream(
       locationSettings: locationSettings,

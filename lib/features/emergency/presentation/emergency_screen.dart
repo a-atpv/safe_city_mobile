@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/api/api.dart';
+import '../../../core/services/location_permission_service.dart';
 import '../../../shared/providers/providers.dart';
 
 enum EmergencyStatus {
@@ -80,33 +81,9 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
     });
 
     try {
-      // 1. Check location services
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
+      final hasPermissions = await LocationPermissionService.checkAndRequestPermissions(context);
+      if (!hasPermissions) {
         setState(() {
-          _error = 'Службы геолокации отключены. Включите GPS в настройках устройства.';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // 2. Check / request permission
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.unableToDetermine) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          setState(() {
-            _error = 'Доступ к геолокации запрещён. Разрешите доступ для вызова охраны.';
-            _isLoading = false;
-          });
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        setState(() {
-          _error = 'Доступ к геолокации запрещён навсегда. Откройте настройки приложения и разрешите доступ к геолокации.';
           _isLoading = false;
         });
         return;
@@ -185,10 +162,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
   }
   
   void _startLocationUpdates() {
-    final locationSettings = const LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 10, // Only notify when user moves 10 meters
-    );
+    final locationSettings = LocationPermissionService.getLocationSettings();
     
     _locationSubscription = Geolocator.getPositionStream(
       locationSettings: locationSettings,
