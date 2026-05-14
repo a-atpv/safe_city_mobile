@@ -558,7 +558,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 radarColor.withAlpha(80),
                                 Colors.transparent,
                               ],
-                              stops: const [0.0, 0.7, 0.4, 0.2],
+                              stops: const [0.0, 0.2, 0.5, 0.7],
                             ),
                           ),
                         ),
