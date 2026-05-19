@@ -34,6 +34,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
   late AnimationController _radarController;
   Timer? _timer;
   Timer? _pollTimer;
+  Timer? _refreshTimer; // 5-second location update timer during active emergency
   int _elapsedSeconds = 0;
   EmergencyStatus _status = EmergencyStatus.searching;
   int? _callId;
@@ -58,6 +59,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
     _radarController.dispose();
     _timer?.cancel();
     _pollTimer?.cancel();
+    _refreshTimer?.cancel();
     _locationSubscription?.cancel();
     super.dispose();
   }
@@ -162,18 +164,28 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
   }
   
   void _startLocationUpdates() {
-    final locationSettings = LocationPermissionService.getLocationSettings();
-    
-    _locationSubscription = Geolocator.getPositionStream(
-      locationSettings: locationSettings,
-    ).listen((Position position) {
-      if (_status != EmergencyStatus.completed &&
-          _status != EmergencyStatus.cancelledByUser &&
-          _status != EmergencyStatus.cancelledBySystem) {
-        ref.read(userProvider.notifier).updateLocation(
-          position.latitude, 
+    // During an active emergency, send location every 5 seconds so the
+    // guard's map is always up-to-date, even if the user is stationary.
+    _locationSubscription?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (_status == EmergencyStatus.completed ||
+          _status == EmergencyStatus.cancelledByUser ||
+          _status == EmergencyStatus.cancelledBySystem) {
+        _refreshTimer?.cancel();
+        return;
+      }
+      try {
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
+        );
+        await ref.read(userProvider.notifier).updateLocation(
+          position.latitude,
           position.longitude,
         );
+      } catch (_) {
+        // Silently ignore — don't interrupt the emergency flow on GPS error
       }
     });
   }
@@ -199,6 +211,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
           if (mounted) {
              timer.cancel();
              _timer?.cancel();
+             _refreshTimer?.cancel();
              _locationSubscription?.cancel();
              context.push('/emergency/chat', extra: callState.id);
           }
@@ -207,12 +220,14 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
         if (newStatus == EmergencyStatus.completed) {
           timer.cancel();
           _timer?.cancel();
+          _refreshTimer?.cancel();
           _locationSubscription?.cancel();
           if (mounted) context.go('/emergency/review', extra: callState.id);
         } else if (newStatus == EmergencyStatus.cancelledByUser ||
                    newStatus == EmergencyStatus.cancelledBySystem) {
           timer.cancel();
           _timer?.cancel();
+          _refreshTimer?.cancel();
           _locationSubscription?.cancel();
           if (mounted) context.go('/home');
         }
