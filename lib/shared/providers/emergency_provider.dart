@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import '../../core/api/api.dart';
 import '../models/emergency_call.dart';
 import '../models/call_message.dart';
@@ -72,8 +73,19 @@ class EmergencyNotifier extends Notifier<EmergencyState> {
       if (response.statusCode == 200) {
         state = state.copyWith(activeCall: EmergencyCall.fromJson(response.data));
       }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        // If it's a 404, the call has been completed or cancelled by system/user.
+        // As a fallback, transition it to 'completed' so that active screens (like EmergencyScreen or ChatScreen)
+        // trigger their redirection handlers.
+        if (state.activeCall != null && state.activeCall!.status != 'completed') {
+          state = state.copyWith(
+            activeCall: state.activeCall!.copyWith(status: 'completed'),
+          );
+        }
+      }
     } catch (_) {
-      // If 404 or fails, it might mean there's no active call
+      // Other network errors should not alter state
     }
   }
 
@@ -136,6 +148,22 @@ class EmergencyNotifier extends Notifier<EmergencyState> {
     } catch (_) {
       return false;
     }
+  }
+
+  void clearActiveCall() {
+    state = const EmergencyState();
+  }
+
+  void updateActiveCallStatus(String status) {
+    if (state.activeCall != null) {
+      state = state.copyWith(
+        activeCall: state.activeCall!.copyWith(status: status),
+      );
+    }
+  }
+
+  void updateActiveCall(EmergencyCall call) {
+    state = state.copyWith(activeCall: call);
   }
 }
 

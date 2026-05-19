@@ -21,5 +21,5 @@ class AppConstants {
   static const int locationUpdateIntervalSeconds = 10;
 
   // WebSocket
-  static const String wsUserUrl = 'wss://safe-city-back-7c8ed50edd7d.herokuapp.com/ws/user';
+  static const String wsUserUrl = 'wss://safe-city-back-7c8ed50edd7d.herokuapp.com/api/v1/ws/user';
 }

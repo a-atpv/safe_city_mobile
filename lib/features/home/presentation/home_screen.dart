@@ -275,6 +275,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final user = userState.user;
     final hasSubscription = user?.hasActiveSubscription ?? false;
     
+    // 1. Sync local searching state if a call is active in the provider (e.g. on app start/resume)
+    if (emergencyState.activeCall != null && !_isSearchingEmergency) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _isSearchingEmergency = true;
+            _callId = emergencyState.activeCall!.id;
+          });
+          _startSearchTimer();
+          _startStatusPolling();
+          _startLocationUpdates();
+        }
+      });
+    }
+
+    // 2. Reset local searching state when the active call is cleared/ended
+    if (_isSearchingEmergency && _callId != null && emergencyState.activeCall == null && !emergencyState.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _isSearchingEmergency = false;
+            _elapsedSeconds = 0;
+            _callId = null;
+          });
+        }
+      });
+    }
+
     return Container(
       decoration: const BoxDecoration(
         gradient: AppColors.backgroundGradient,

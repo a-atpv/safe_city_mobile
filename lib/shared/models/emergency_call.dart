@@ -57,6 +57,33 @@ class EmergencyCall {
     this.securityCompany,
   });
 
+  EmergencyCall copyWith({
+    String? status,
+    double? latitude,
+    double? longitude,
+    String? address,
+    DateTime? createdAt,
+    DateTime? acceptedAt,
+    DateTime? enRouteAt,
+    DateTime? arrivedAt,
+    DateTime? completedAt,
+    SecurityCompanyBrief? securityCompany,
+  }) {
+    return EmergencyCall(
+      id: id,
+      status: status ?? this.status,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      address: address ?? this.address,
+      createdAt: createdAt ?? this.createdAt,
+      acceptedAt: acceptedAt ?? this.acceptedAt,
+      enRouteAt: enRouteAt ?? this.enRouteAt,
+      arrivedAt: arrivedAt ?? this.arrivedAt,
+      completedAt: completedAt ?? this.completedAt,
+      securityCompany: securityCompany ?? this.securityCompany,
+    );
+  }
+
   factory EmergencyCall.fromJson(Map<String, dynamic> json) {
     return EmergencyCall(
       id: json['id'],

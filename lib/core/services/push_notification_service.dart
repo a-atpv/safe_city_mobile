@@ -4,9 +4,12 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../router/app_router.dart';
+import '../../shared/providers/emergency_provider.dart';
 
 /// Top-level function to handle background messages.
 @pragma('vm:entry-point')
@@ -188,10 +191,87 @@ class PushNotificationService {
     final context = rootNavigatorKey.currentContext;
     if (context == null) return;
 
-    if (data.containsKey('call_id')) {
-      // User app might want to go to emergency detail or status screen
-      // Assuming /emergency is the path for active requests
-      GoRouter.of(context).push('/emergency');
+    final callIdStr = data['call_id']?.toString();
+    final callId = callIdStr != null ? int.tryParse(callIdStr) : null;
+    final status = data['status']?.toString();
+
+    if (callId != null) {
+      final container = ProviderScope.containerOf(context);
+      final emergencyNotifier = container.read(emergencyProvider.notifier);
+
+      if (status == 'completed') {
+        emergencyNotifier.clearActiveCall();
+        
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF1E293B),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle_outline, color: Colors.green, size: 28),
+                SizedBox(width: 8),
+                Text('Успешно', style: TextStyle(color: Colors.white)),
+              ],
+            ),
+            content: const Text(
+              'Вызов успешно завершен! Пожалуйста, оцените работу службы безопасности.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  GoRouter.of(context).go('/emergency/review', extra: callId);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Оценить', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
+      } else if (status == 'cancelled_by_user' || status == 'cancelled_by_system') {
+        emergencyNotifier.clearActiveCall();
+        final text = status == 'cancelled_by_system'
+            ? 'Ваш вызов был отменен системой.'
+            : 'Вызов отменен.';
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF1E293B),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.redAccent, size: 28),
+                SizedBox(width: 8),
+                Text('Вызов отменен', style: TextStyle(color: Colors.white)),
+              ],
+            ),
+            content: Text(
+              text,
+              style: const TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  GoRouter.of(context).go('/home');
+                },
+                child: const Text('ОК'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        emergencyNotifier.getActiveCall();
+        GoRouter.of(context).push('/emergency');
+      }
     } else {
       GoRouter.of(context).go('/home');
     }
