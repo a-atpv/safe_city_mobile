@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api.dart';
 import '../../core/services/push_notification_service.dart';
 import 'emergency_provider.dart';
+import 'user_provider.dart';
 
 // Auth state
 enum AuthStatus { unknown, authenticated, unauthenticated }
@@ -146,23 +147,32 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (_) {}
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
+
+  void completeOnboarding() {
+    state = state.copyWith(isNew: false);
+  }
 }
 
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
 
-/// A [ChangeNotifier] that notifies GoRouter when auth state changes.
+/// A [ChangeNotifier] that notifies GoRouter when auth or user state changes.
 class AuthChangeNotifier extends ChangeNotifier {
-  late final ProviderSubscription<AuthState> _subscription;
+  late final ProviderSubscription<AuthState> _authSubscription;
+  late final ProviderSubscription<UserState> _userSubscription;
 
   AuthChangeNotifier(Ref ref) {
-    _subscription = ref.listen<AuthState>(authProvider, (_, __) {
+    _authSubscription = ref.listen<AuthState>(authProvider, (_, __) {
+      notifyListeners();
+    });
+    _userSubscription = ref.listen<UserState>(userProvider, (_, __) {
       notifyListeners();
     });
   }
 
   @override
   void dispose() {
-    _subscription.close();
+    _authSubscription.close();
+    _userSubscription.close();
     super.dispose();
   }
 }

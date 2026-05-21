@@ -18,6 +18,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _secretPhraseController = TextEditingController();
 
   late final AnimationController _animController;
   late final Animation<double> _fadeAnim;
@@ -43,6 +44,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     _animController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
+    _secretPhraseController.dispose();
     super.dispose();
   }
 
@@ -54,10 +56,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           phone: _phoneController.text.trim().isEmpty
               ? null
               : _phoneController.text.trim(),
+          secretPhrase: _secretPhraseController.text.trim().isEmpty
+              ? null
+              : _secretPhraseController.text.trim(),
         );
 
     if (mounted) {
       if (success) {
+        ref.read(authProvider.notifier).completeOnboarding();
+        context.go('/home');
+      } else {
+        final error = ref.read(userProvider).error;
+        ErrorHandler.showError(context, error);
+      }
+    }
+  }
+
+  Future<void> _skipOnboarding() async {
+    final success = await ref.read(userProvider.notifier).updateProfile(
+          isNew: false,
+        );
+
+    if (mounted) {
+      if (success) {
+        ref.read(authProvider.notifier).completeOnboarding();
         context.go('/home');
       } else {
         final error = ref.read(userProvider).error;
@@ -210,6 +232,28 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                               color: AppColors.textHint,
                                             ),
                                       ),
+
+                                      const SizedBox(height: 20),
+
+                                      _label('Секретное слово * (для отмены вызова)'),
+                                      const SizedBox(height: 8),
+                                      TextFormField(
+                                        controller: _secretPhraseController,
+                                        style: const TextStyle(
+                                          color: AppColors.textPrimary,
+                                        ),
+                                        decoration: _inputDecoration(
+                                          hint: 'Секретное слово',
+                                          icon: Icons.lock_outline,
+                                        ),
+                                        validator: (value) {
+                                          if (value == null ||
+                                              value.trim().isEmpty) {
+                                            return 'Пожалуйста, введите секретное слово';
+                                          }
+                                          return null;
+                                        },
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -230,21 +274,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
                                 const SizedBox(height: 16),
 
-                                // Skip link
-                                Center(
-                                  child: TextButton(
-                                    onPressed: userState.isLoading
-                                        ? null
-                                        : () => context.go('/home'),
-                                    child: Text(
-                                      'Пропустить',
-                                      style: TextStyle(
-                                        color: AppColors.textSecondary,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                                 // Skip link
+                                 Center(
+                                   child: TextButton(
+                                     onPressed: userState.isLoading
+                                         ? null
+                                         : _skipOnboarding,
+                                     child: Text(
+                                       'Пропустить',
+                                       style: TextStyle(
+                                         color: AppColors.textSecondary,
+                                         fontSize: 14,
+                                       ),
+                                     ),
+                                   ),
+                                 ),
 
                                 const SizedBox(height: 8),
                               ],

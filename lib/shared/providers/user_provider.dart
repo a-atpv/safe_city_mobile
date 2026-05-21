@@ -13,6 +13,7 @@ class User {
   final bool isVerified;
   final Subscription? subscription;
   final String? secretPhrase;
+  final bool isNew;
   
   User({
     required this.id,
@@ -23,6 +24,7 @@ class User {
     this.isVerified = false,
     this.subscription,
     this.secretPhrase,
+    this.isNew = false,
   });
   
   factory User.fromJson(Map<String, dynamic> json) {
@@ -37,6 +39,7 @@ class User {
           ? Subscription.fromJson(json['subscription'])
           : null,
       secretPhrase: json['secret_phrase'],
+      isNew: json['is_new'] ?? false,
     );
   }
   
@@ -114,11 +117,16 @@ class UserNotifier extends Notifier<UserState> {
       final data = <String, dynamic>{'is_new': isNew};
       if (fullName != null) data['full_name'] = fullName;
       if (phone != null) data['phone'] = phone;
-      if (secretPhrase != null) data['secret_phrase'] = secretPhrase;
       
       final response = await _apiClient.dio.patch('/user/me', data: data);
       
       if (response.statusCode == 200) {
+        if (secretPhrase != null) {
+          await _apiClient.dio.post(
+            '/user/me/secret-phrase',
+            data: {'secret_phrase': secretPhrase},
+          );
+        }
         await fetchUser();
         return true;
       }

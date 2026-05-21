@@ -15,6 +15,7 @@ import '../../features/profile/presentation/documents_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
 import '../../shared/providers/auth_provider.dart';
+import '../../shared/providers/user_provider.dart';
 
 import 'package:flutter/material.dart';
 
@@ -30,6 +31,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: authChangeNotifier,
     redirect: (context, state) {
       final authState = ref.read(authProvider);
+      final userState = ref.read(userProvider);
       final status = authState.status;
       final currentPath = state.uri.path;
 
@@ -38,23 +40,35 @@ final routerProvider = Provider<GoRouter>((ref) {
         return currentPath == '/' ? null : '/';
       }
 
+      final isAuthenticated = status == AuthStatus.authenticated;
+      final isNewUser = authState.isNew || (userState.user?.isNew ?? false);
+
       // Auth check finished: splash must not remain visible.
       if (currentPath == '/') {
-        return status == AuthStatus.authenticated ? '/home' : '/login';
+        if (isAuthenticated) {
+          return isNewUser ? '/onboarding' : '/home';
+        } else {
+          return '/login';
+        }
       }
 
-      final isAuthenticated = status == AuthStatus.authenticated;
       final isOnAuthRoute =
           currentPath == '/login' ||
           currentPath == '/otp' ||
           currentPath == '/onboarding' ||
           currentPath == '/';
 
-      // Authenticated user trying to access login/otp → go home
-      // (onboarding is intentionally allowed for new users)
+      // Authenticated user trying to access login/otp → go home or onboarding
       if (isAuthenticated &&
           (currentPath == '/login' || currentPath == '/otp')) {
-        return '/home';
+        return isNewUser ? '/onboarding' : '/home';
+      }
+
+      // If user is authenticated, is a new user, and is not on onboarding/documents, force them to onboarding
+      if (isAuthenticated && isNewUser && currentPath != '/onboarding') {
+        if (currentPath != '/documents') {
+          return '/onboarding';
+        }
       }
 
       // Unauthenticated user trying to access protected routes → go to login
