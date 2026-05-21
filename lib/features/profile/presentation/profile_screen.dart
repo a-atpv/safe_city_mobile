@@ -113,7 +113,7 @@ class ProfileScreen extends ConsumerWidget {
                 context,
                 icon: Icons.description_outlined,
                 title: 'Документы',
-                onTap: () {},
+                onTap: () => _showDocumentsBottomSheet(context),
               ),
               
               _buildMenuItem(
@@ -189,6 +189,81 @@ class ProfileScreen extends ConsumerWidget {
         onTap: onTap,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+    );
+  }
+
+  void _showDocumentsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.backgroundLight,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.textSecondary.withAlpha(76),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Text(
+                  'Документы',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.primary),
+                title: const Text(
+                  'Политика конфиденциальности',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push(
+                    '/documents',
+                    extra: {
+                      'title': 'Политика конфиденциальности',
+                      'url': 'https://www.safe-city.kz/legal/privacy-policy',
+                    },
+                  );
+                },
+              ),
+              const Divider(color: AppColors.surfaceBorder, height: 1),
+              ListTile(
+                leading: const Icon(Icons.description_outlined, color: AppColors.primary),
+                title: const Text(
+                  'Пользовательское соглашение',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push(
+                    '/documents',
+                    extra: {
+                      'title': 'Пользовательское соглашение',
+                      'url': 'https://www.safe-city.kz/legal/terms-of-service',
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

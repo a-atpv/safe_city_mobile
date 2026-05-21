@@ -10,6 +10,7 @@ import '../../features/emergency/presentation/review_screen.dart';
 import '../../features/history/presentation/history_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/settings_screen.dart';
+import '../../features/profile/presentation/documents_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
 import '../../shared/providers/auth_provider.dart';
@@ -115,6 +116,16 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: '/settings',
                 name: 'settings',
                 builder: (context, state) => const SettingsScreen(),
+              ),
+              GoRoute(
+                path: '/documents',
+                name: 'documents',
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, String>?;
+                  final title = extra?['title'] ?? 'Политика конфиденциальности';
+                  final url = extra?['url'] ?? 'https://www.safe-city.kz/legal/privacy-policy';
+                  return DocumentsScreen(title: title, url: url);
+                },
               ),
             ],
           ),
