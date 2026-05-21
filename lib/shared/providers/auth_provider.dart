@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api.dart';
 import '../../core/services/push_notification_service.dart';
+import 'emergency_provider.dart';
 
 // Auth state
 enum AuthStatus { unknown, authenticated, unauthenticated }
@@ -12,12 +13,14 @@ class AuthState {
   final String? email;
   final bool isLoading;
   final String? error;
+  final bool isNew;
   
   const AuthState({
     this.status = AuthStatus.unknown,
     this.email,
     this.isLoading = false,
     this.error,
+    this.isNew = false,
   });
   
   AuthState copyWith({
@@ -25,12 +28,14 @@ class AuthState {
     String? email,
     bool? isLoading,
     String? error,
+    bool? isNew,
   }) {
     return AuthState(
       status: status ?? this.status,
       email: email ?? this.email,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      isNew: isNew ?? this.isNew,
     );
   }
 }
@@ -115,9 +120,11 @@ class AuthNotifier extends Notifier<AuthState> {
           response.data['refresh_token'],
         );
         await _registerDevice();
+        final isNew = response.data['is_new'] as bool? ?? false;
         state = state.copyWith(
           isLoading: false,
           status: AuthStatus.authenticated,
+          isNew: isNew,
         );
         return true;
       }
@@ -134,6 +141,9 @@ class AuthNotifier extends Notifier<AuthState> {
   
   Future<void> logout() async {
     await _apiClient.clearTokens();
+    try {
+      ref.read(emergencyProvider.notifier).clearActiveCall();
+    } catch (_) {}
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 }

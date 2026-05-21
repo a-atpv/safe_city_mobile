@@ -72,8 +72,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     );
     
     if (success && mounted) {
-      await ref.read(userProvider.notifier).fetchUser();
-      if (mounted) context.go('/home');
+      final isNew = ref.read(authProvider).isNew;
+      if (isNew) {
+        context.go('/onboarding');
+      } else {
+        await ref.read(userProvider.notifier).fetchUser();
+        if (mounted) context.go('/home');
+      }
     }
   }
   

@@ -12,6 +12,7 @@ class User {
   final String? avatarUrl;
   final bool isVerified;
   final Subscription? subscription;
+  final String? secretPhrase;
   
   User({
     required this.id,
@@ -21,6 +22,7 @@ class User {
     this.avatarUrl,
     this.isVerified = false,
     this.subscription,
+    this.secretPhrase,
   });
   
   factory User.fromJson(Map<String, dynamic> json) {
@@ -34,6 +36,7 @@ class User {
       subscription: json['subscription'] != null 
           ? Subscription.fromJson(json['subscription'])
           : null,
+      secretPhrase: json['secret_phrase'],
     );
   }
   
@@ -99,13 +102,19 @@ class UserNotifier extends Notifier<UserState> {
     }
   }
   
-  Future<bool> updateProfile({String? fullName, String? phone}) async {
+  Future<bool> updateProfile({
+    String? fullName,
+    String? phone,
+    String? secretPhrase,
+    bool isNew = false,
+  }) async {
     state = state.copyWith(isLoading: true, error: null);
     
     try {
-      final data = <String, dynamic>{};
+      final data = <String, dynamic>{'is_new': isNew};
       if (fullName != null) data['full_name'] = fullName;
       if (phone != null) data['phone'] = phone;
+      if (secretPhrase != null) data['secret_phrase'] = secretPhrase;
       
       final response = await _apiClient.dio.patch('/user/me', data: data);
       

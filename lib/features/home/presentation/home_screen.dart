@@ -39,9 +39,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       duration: const Duration(milliseconds: 1500),
     )..repeat();
     
-    // Fetch user data
+    // Fetch user data and check for active calls on startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(userProvider.notifier).fetchUser();
+      ref.read(emergencyProvider.notifier).getActiveCall();
     });
   }
   
@@ -279,9 +280,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (emergencyState.activeCall != null && !_isSearchingEmergency) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
+          final activeCall = emergencyState.activeCall!;
+          final diff = DateTime.now().difference(activeCall.createdAt).inSeconds;
           setState(() {
             _isSearchingEmergency = true;
-            _callId = emergencyState.activeCall!.id;
+            _callId = activeCall.id;
+            _elapsedSeconds = diff > 0 ? diff : 0;
           });
           _startSearchTimer();
           _startStatusPolling();
@@ -646,8 +650,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildCurrentCallWidget(EmergencyCall call) {
+    final guard = call.guard;
     final companyName = call.securityCompany?.name ?? 'Охрана назначена';
+    final displayName = guard != null ? guard.fullName : companyName;
     final companyPhone = call.securityCompany?.phone;
+
+    final hasAvatar = guard?.avatarUrl != null && guard!.avatarUrl!.isNotEmpty;
+    final ratingText = guard != null 
+        ? '${guard.rating.toStringAsFixed(1)} (${guard.totalReviews} отзывов)'
+        : '4.8 (127 отзывов)';
 
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -669,7 +680,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   border: Border.all(color: Colors.white24),
                   color: AppColors.backgroundLight,
                 ),
-                child: const Icon(Icons.person, color: AppColors.textPrimary),
+                child: hasAvatar
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(29),
+                        child: Image.network(
+                          guard.avatarUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Icon(
+                            Icons.person,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      )
+                    : const Icon(Icons.person, color: AppColors.textPrimary),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -677,7 +700,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      companyName,
+                      displayName,
                       style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 18,
@@ -685,13 +708,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.star, color: AppColors.warning, size: 16),
-                        SizedBox(width: 4),
+                        const Icon(Icons.star, color: AppColors.warning, size: 16),
+                        const SizedBox(width: 4),
                         Text(
-                          '4.8 (127 отзывов)',
-                          style: TextStyle(
+                          ratingText,
+                          style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 15,
                           ),

@@ -81,29 +81,62 @@ class _CallChatScreenState extends ConsumerState<CallChatScreen> {
   }
 
   Future<void> _cancelCall() async {
+    final secretPhraseController = TextEditingController();
+    bool obscure = true;
+
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundLight,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Отменить вызов?'),
-        content: const Text('Вы уверены, что хотите отменить вызов охраны?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Нет'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.backgroundLight,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Отменить вызов?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Введите секретный код для подтверждения отмены вызова охраны.'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: secretPhraseController,
+                obscureText: obscure,
+                decoration: InputDecoration(
+                  labelText: 'Секретный код',
+                  hintText: 'Ваше секретное слово',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      color: AppColors.textSecondary,
+                    ),
+                    onPressed: () => setDialogState(() => obscure = !obscure),
+                  ),
+                ),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Да, отменить'),
-          ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Нет'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+              child: const Text('Да, отменить'),
+            ),
+          ],
+        ),
       ),
     );
     
     if (confirmed == true) {
-      final success = await ref.read(emergencyProvider.notifier).cancelCall(widget.callId, null);
+      final success = await ref.read(emergencyProvider.notifier).cancelCall(
+        widget.callId,
+        null,
+        secretPhrase: secretPhraseController.text.isNotEmpty
+            ? secretPhraseController.text
+            : null,
+      );
       if (success && mounted) {
         context.go('/home');
       }

@@ -273,52 +273,83 @@ class ProfileScreen extends ConsumerWidget {
     final user = ref.read(userProvider).user;
     final nameController = TextEditingController(text: user?.fullName);
     final phoneController = TextEditingController(text: user?.phone);
+    final secretPhraseController = TextEditingController(text: user?.secretPhrase);
+    bool obscurePhrase = true;
     
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundLight,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Редактировать профиль'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Имя',
-                  hintText: 'Введите ваше имя',
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.backgroundLight,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Редактировать профиль'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Имя',
+                    hintText: 'Введите ваше имя',
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Телефон',
-                  hintText: '+7 (777) 123-45-67',
+                const SizedBox(height: 16),
+                TextField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Телефон',
+                    hintText: '+7 (777) 123-45-67',
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                TextField(
+                  controller: secretPhraseController,
+                  obscureText: obscurePhrase,
+                  decoration: InputDecoration(
+                    labelText: 'Секретный код',
+                    hintText: 'Слово для отмены вызова',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscurePhrase ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        color: AppColors.textSecondary,
+                      ),
+                      onPressed: () => setDialogState(() => obscurePhrase = !obscurePhrase),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Используется для подтверждения отмены вызова охраны',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textHint,
+                  ),
+                ),
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Отмена'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await ref.read(userProvider.notifier).updateProfile(
+                  fullName: nameController.text,
+                  phone: phoneController.text,
+                  secretPhrase: secretPhraseController.text.isNotEmpty
+                      ? secretPhraseController.text
+                      : null,
+                );
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('Сохранить'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await ref.read(userProvider.notifier).updateProfile(
-                fullName: nameController.text,
-                phone: phoneController.text,
-              );
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Сохранить'),
-          ),
-        ],
       ),
     );
   }

@@ -89,11 +89,16 @@ class EmergencyNotifier extends Notifier<EmergencyState> {
     }
   }
 
-  Future<bool> cancelCall(int callId, String? reason) async {
+  Future<bool> cancelCall(int callId, String? reason, {String? secretPhrase}) async {
     try {
-      final response = await _apiClient.dio.post('/emergency/call/$callId/cancel', data: {
-        'reason': reason,
-      });
+      final data = <String, dynamic>{'reason': reason};
+      if (secretPhrase != null && secretPhrase.isNotEmpty) {
+        data['secret_phrase'] = secretPhrase;
+      }
+      final response = await _apiClient.dio.post(
+        '/emergency/call/$callId/cancel',
+        data: data,
+      );
       if (response.statusCode == 200) {
         state = const EmergencyState(); // clear state
         return true;

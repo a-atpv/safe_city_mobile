@@ -42,6 +42,8 @@ class EmergencyCall {
   final DateTime? arrivedAt;
   final DateTime? completedAt;
   final SecurityCompanyBrief? securityCompany;
+  final CallUser? user;
+  final CallGuard? guard;
 
   EmergencyCall({
     required this.id,
@@ -55,6 +57,8 @@ class EmergencyCall {
     this.arrivedAt,
     this.completedAt,
     this.securityCompany,
+    this.user,
+    this.guard,
   });
 
   EmergencyCall copyWith({
@@ -68,6 +72,8 @@ class EmergencyCall {
     DateTime? arrivedAt,
     DateTime? completedAt,
     SecurityCompanyBrief? securityCompany,
+    CallUser? user,
+    CallGuard? guard,
   }) {
     return EmergencyCall(
       id: id,
@@ -81,6 +87,8 @@ class EmergencyCall {
       arrivedAt: arrivedAt ?? this.arrivedAt,
       completedAt: completedAt ?? this.completedAt,
       securityCompany: securityCompany ?? this.securityCompany,
+      user: user ?? this.user,
+      guard: guard ?? this.guard,
     );
   }
 
@@ -99,6 +107,8 @@ class EmergencyCall {
       securityCompany: json['security_company'] != null
           ? SecurityCompanyBrief.fromJson(json['security_company'])
           : null,
+      user: json['user'] != null ? CallUser.fromJson(json['user']) : null,
+      guard: json['guard'] != null ? CallGuard.fromJson(json['guard']) : null,
     );
   }
 
@@ -115,6 +125,72 @@ class EmergencyCall {
       'arrived_at': arrivedAt?.toUtc().toIso8601String(),
       'completed_at': completedAt?.toUtc().toIso8601String(),
       'security_company': securityCompany?.toJson(),
+      'user': user?.toJson(),
+      'guard': guard?.toJson(),
+    };
+  }
+}
+
+class CallUser {
+  final String fullName;
+  final String phone;
+  final String? avatarUrl;
+
+  CallUser({
+    required this.fullName,
+    required this.phone,
+    this.avatarUrl,
+  });
+
+  factory CallUser.fromJson(Map<String, dynamic> json) {
+    return CallUser(
+      fullName: json['full_name'] ?? '',
+      phone: json['phone'] ?? '',
+      avatarUrl: json['avatar_url'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'full_name': fullName,
+      'phone': phone,
+      'avatar_url': avatarUrl,
+    };
+  }
+}
+
+class CallGuard {
+  final int id;
+  final String fullName;
+  final String? avatarUrl;
+  final double rating;
+  final int totalReviews;
+
+  CallGuard({
+    required this.id,
+    required this.fullName,
+    this.avatarUrl,
+    required this.rating,
+    required this.totalReviews,
+  });
+
+  factory CallGuard.fromJson(Map<String, dynamic> json) {
+    return CallGuard(
+      id: json['id'],
+      fullName: json['full_name'] ?? '',
+      avatarUrl: json['avatar_url'],
+      rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
+      totalReviews: json['total_reviews'] as int? ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'full_name': fullName,
+      'avatar_url': avatarUrl,
+      'rating': rating,
+      'total_reviews': totalReviews,
     };
   }
 }

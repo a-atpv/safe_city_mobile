@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/otp_screen.dart';
+import '../../features/auth/presentation/onboarding_screen.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/emergency/presentation/emergency_screen.dart';
@@ -44,10 +45,15 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final isAuthenticated = status == AuthStatus.authenticated;
       final isOnAuthRoute =
-          currentPath == '/login' || currentPath == '/otp' || currentPath == '/';
+          currentPath == '/login' ||
+          currentPath == '/otp' ||
+          currentPath == '/onboarding' ||
+          currentPath == '/';
 
-      // Authenticated user trying to access auth routes → go home
-      if (isAuthenticated && isOnAuthRoute) {
+      // Authenticated user trying to access login/otp → go home
+      // (onboarding is intentionally allowed for new users)
+      if (isAuthenticated &&
+          (currentPath == '/login' || currentPath == '/otp')) {
         return '/home';
       }
 
@@ -130,6 +136,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      
+      // Full-screen onboarding flow (no shell/bottom nav)
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       
       // Full-screen emergency flow (no shell/bottom nav)
