@@ -24,12 +24,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       _rating,
       _commentController.text.trim().isEmpty ? null : _commentController.text.trim(),
     );
+    ref.read(emergencyProvider.notifier).clearActiveCall();
     if (mounted) {
       context.go('/home');
     }
   }
 
   void _skip() {
+    ref.read(emergencyProvider.notifier).clearActiveCall();
     context.go('/home');
   }
 
