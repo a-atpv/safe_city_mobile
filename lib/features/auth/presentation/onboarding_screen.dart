@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_multi_formatter/formatters/phone_input_formatter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
@@ -43,7 +44,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   void dispose() {
     _animController.dispose();
     _nameController.dispose();
-    _phoneController.dispose();
     _secretPhraseController.dispose();
     super.dispose();
   }
@@ -51,7 +51,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final success = await ref.read(userProvider.notifier).updateProfile(
+    final success = await ref
+        .read(userProvider.notifier)
+        .updateProfile(
           fullName: _nameController.text.trim(),
           phone: _phoneController.text.trim().isEmpty
               ? null
@@ -73,9 +75,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   Future<void> _skipOnboarding() async {
-    final success = await ref.read(userProvider.notifier).updateProfile(
-          isNew: false,
-        );
+    final success = await ref
+        .read(userProvider.notifier)
+        .updateProfile(isNew: false);
 
     if (mounted) {
       if (success) {
@@ -94,9 +96,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient,
-        ),
+        decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -130,8 +130,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                       borderRadius: BorderRadius.circular(20),
                                       boxShadow: [
                                         BoxShadow(
-                                          color:
-                                              AppColors.primary.withAlpha(80),
+                                          color: AppColors.primary.withAlpha(
+                                            80,
+                                          ),
                                           blurRadius: 24,
                                           offset: const Offset(0, 8),
                                         ),
@@ -151,9 +152,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                 Center(
                                   child: Text(
                                     'Добро пожаловать!',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineLarge,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.headlineLarge,
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
@@ -183,7 +184,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      _label('Полное имя *'),
+                                      Row(
+                                        children: [
+                                          _label('Полное имя'),
+                                          Text(
+                                            ' *',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        ],
+                                      ),
                                       const SizedBox(height: 8),
                                       TextFormField(
                                         controller: _nameController,
@@ -194,7 +203,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                           color: AppColors.textPrimary,
                                         ),
                                         decoration: _inputDecoration(
-                                          hint: 'Иван Иванов',
+                                          hint: 'Ваше имя и фамилия',
                                           icon: Icons.badge_outlined,
                                         ),
                                         validator: (value) {
@@ -213,11 +222,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                       TextFormField(
                                         controller: _phoneController,
                                         keyboardType: TextInputType.phone,
+                                        inputFormatters: [
+                                          PhoneInputFormatter()
+                                        ],
                                         style: const TextStyle(
                                           color: AppColors.textPrimary,
                                         ),
                                         decoration: _inputDecoration(
-                                          hint: '+7 (777) 123-45-67',
+                                          hint: '+7 (___) ___-__-__',
                                           icon: Icons.phone_outlined,
                                         ),
                                       ),
@@ -235,7 +247,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
                                       const SizedBox(height: 20),
 
-                                      _label('Секретное слово * (для отмены вызова)'),
+                                      _label(
+                                        'Секретное слово * (для отмены вызова)',
+                                      ),
                                       const SizedBox(height: 8),
                                       TextFormField(
                                         controller: _secretPhraseController,
@@ -274,21 +288,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
                                 const SizedBox(height: 16),
 
-                                 // Skip link
-                                 Center(
-                                   child: TextButton(
-                                     onPressed: userState.isLoading
-                                         ? null
-                                         : _skipOnboarding,
-                                     child: Text(
-                                       'Пропустить',
-                                       style: TextStyle(
-                                         color: AppColors.textSecondary,
-                                         fontSize: 14,
-                                       ),
-                                     ),
-                                   ),
-                                 ),
+                                // Skip link
+                                Center(
+                                  child: TextButton(
+                                    onPressed: userState.isLoading
+                                        ? null
+                                        : _skipOnboarding,
+                                    child: Text(
+                                      'Пропустить',
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ),
 
                                 const SizedBox(height: 8),
                               ],
@@ -345,8 +359,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: AppColors.error, width: 1.5),
       ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
   }
 }

@@ -231,11 +231,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final createdAt = DateTime.parse(call['created_at']);
     final durationSeconds = call['duration_seconds'] as int?;
     
-    final isCompleted = status == 'completed';
-    final isCancelled = status.contains('cancelled');
-    
-    final statusText = isCompleted ? 'Завершён' : (isCancelled ? 'Отменён' : status);
-    final statusColor = isCompleted ? AppColors.success : AppColors.textSecondary;
+    final statusText = _statusLabel(status);
+    final statusColor = _statusColor(status);
     
     return GlassContainer(
       margin: const EdgeInsets.only(bottom: 12),
@@ -264,7 +261,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isCompleted ? Icons.check_circle : Icons.cancel,
+                        _statusIcon(status),
                         color: statusColor,
                         size: 14,
                       ),
@@ -294,6 +291,25 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
   
+  String _statusLabel(String status) {
+    if (status == 'completed') return 'Завершён';
+    if (status.contains('cancelled')) return 'Отменён';
+    if (status == 'offer_sent') return 'В процессе';
+    return status;
+  }
+
+  Color _statusColor(String status) {
+    if (status == 'completed') return AppColors.success;
+    if (status.contains('cancelled')) return AppColors.textSecondary;
+    return AppColors.primary;
+  }
+
+  IconData _statusIcon(String status) {
+    if (status == 'completed') return Icons.check_circle;
+    if (status.contains('cancelled')) return Icons.cancel;
+    return Icons.timer_outlined;
+  }
+
   String _formatDate(DateTime date) {
     final months = [
       'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',

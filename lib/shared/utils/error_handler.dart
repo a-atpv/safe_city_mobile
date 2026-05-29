@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../widgets/error_dialog.dart';
 import '../../core/api/api_exception.dart';
@@ -12,6 +13,9 @@ class ErrorHandler {
     if (error is ApiException) {
       title = 'Ошибка сети';
       description = _sanitizeMessage(error.message);
+    } else if (error is DioException) {
+      title = 'Ошибка сети';
+      description = _sanitizeMessage(ApiException.fromAny(error).message);
     } else if (error is String) {
       title = 'Ошибка';
       description = _sanitizeMessage(error);
@@ -38,6 +42,12 @@ class ErrorHandler {
         .split('\n')
         .firstWhere((line) => line.trim().isNotEmpty, orElse: () => message)
         .trim();
+
+    if (cleanMessage.contains(
+      'This exception was thrown because the response has a status code',
+    )) {
+      return 'Произошла ошибка при запросе к серверу';
+    }
 
     // Limit length to ensure it fits the screen as requested
     if (cleanMessage.length > 150) {

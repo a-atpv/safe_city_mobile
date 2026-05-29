@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/app_constants.dart';
+import 'api_exception.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
@@ -68,7 +69,16 @@ class ApiClient {
             }
           }
         }
-        return handler.next(error);
+        final apiError = ApiException.fromDioError(error);
+        return handler.next(
+          DioException(
+            requestOptions: error.requestOptions,
+            response: error.response,
+            type: error.type,
+            error: apiError,
+            message: apiError.message,
+          ),
+        );
       },
     ));
   }

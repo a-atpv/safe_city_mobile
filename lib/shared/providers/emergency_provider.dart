@@ -62,7 +62,10 @@ class EmergencyNotifier extends Notifier<EmergencyState> {
       state = state.copyWith(isLoading: false, error: e.message);
       return false;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        error: ApiException.fromAny(e).message,
+      );
       return false;
     }
   }
@@ -108,7 +111,7 @@ class EmergencyNotifier extends Notifier<EmergencyState> {
       state = state.copyWith(error: e.message);
       return false;
     } catch (e) {
-      state = state.copyWith(error: 'Не удалось отменить вызов');
+      state = state.copyWith(error: ApiException.fromAny(e).message);
       return false;
     }
   }
@@ -138,7 +141,7 @@ class EmergencyNotifier extends Notifier<EmergencyState> {
       state = state.copyWith(error: e.message);
       return false;
     } catch (e) {
-      state = state.copyWith(error: 'Не удалось отправить сообщение');
+      state = state.copyWith(error: ApiException.fromAny(e).message);
       return false;
     }
   }

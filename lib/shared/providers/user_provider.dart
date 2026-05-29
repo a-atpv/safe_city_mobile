@@ -101,7 +101,10 @@ class UserNotifier extends Notifier<UserState> {
     } on ApiException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        error: ApiException.fromAny(e).message,
+      );
     }
   }
   
@@ -135,7 +138,10 @@ class UserNotifier extends Notifier<UserState> {
       state = state.copyWith(isLoading: false, error: e.message);
       return false;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(
+        isLoading: false,
+        error: ApiException.fromAny(e).message,
+      );
       return false;
     }
   }
