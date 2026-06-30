@@ -172,13 +172,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         return;
       }
 
-      Position? position = await Geolocator.getLastKnownPosition();
-      position ??= await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 25),
-        ),
-      );
+      // Берём максимально точную стартовую координату: свежий high-accuracy
+      // фикс, а не потенциально устаревший кэш getLastKnownPosition.
+      final position =
+          await LocationPermissionService.getBestInitialPosition();
 
       final success = await ref.read(emergencyProvider.notifier).createCall(
             position.latitude,
@@ -256,12 +253,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _locationSubscription = Geolocator.getPositionStream(
       locationSettings: locationSettings,
     ).listen((position) {
-      if (_isSearchingEmergency) {
-        ref.read(userProvider.notifier).updateLocation(
-              position.latitude,
-              position.longitude,
-            );
-      }
+      if (!_isSearchingEmergency) return;
+      // Отсекаем грубые сетевые фиксы, чтобы точка на карте охраны не «прыгала».
+      if (!LocationPermissionService.isAcceptableFix(position)) return;
+      ref.read(userProvider.notifier).updateLocation(
+            position.latitude,
+            position.longitude,
+          );
     });
   }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -192,7 +193,12 @@ class LocationPermissionService {
       return AndroidSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 10,
-        forceLocationManager: true,
+        // Используем fused-провайдер (Google Play Services) — он точнее за счёт
+        // объединения GPS + Wi-Fi + сети + сенсоров. На устройствах без GMS
+        // geolocator сам откатится на LocationManager. Прежнее значение
+        // forceLocationManager: true форсировало устаревший LocationManager и
+        // давало заметно более грубые координаты.
+        forceLocationManager: false,
         foregroundNotificationConfig: const ForegroundNotificationConfig(
           notificationTitle: 'Safe City SOS',
           notificationText: 'Отправка координат охране в фоновом режиме',
@@ -209,5 +215,60 @@ class LocationPermissionService {
       );
     }
     return const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Получение и валидация координат
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Максимальный возраст закэшированного фикса, который считаем пригодным.
+  static const Duration _maxCacheAge = Duration(seconds: 30);
+
+  /// Порог точности (в метрах) для стартового фикса. Грубее — не принимаем
+  /// кэш и ждём свежий high-accuracy фикс.
+  static const double _initialAccuracyThreshold = 50;
+
+  /// Порог точности (в метрах) для непрерывных обновлений во время вызова.
+  /// Чуть мягче, чтобы не терять трекинг в помещении/плотной застройке.
+  static const double maxAcceptableAccuracy = 100;
+
+  /// Возвращает максимально точную стартовую координату для создания вызова.
+  ///
+  /// Кэшированную позицию (getLastKnownPosition) используем только если она
+  /// свежая и точная; иначе ждём свежий high-accuracy фикс. Если свежий фикс не
+  /// успел прийти за отведённое время, возвращаем кэш как запасной вариант —
+  /// для SOS лучше неточная координата, чем полный отказ вызова.
+  static Future<Position> getBestInitialPosition() async {
+    final cached = await Geolocator.getLastKnownPosition();
+    if (cached != null && _isFreshAndAccurate(cached)) {
+      return cached;
+    }
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 25),
+        ),
+      );
+    } on TimeoutException {
+      if (cached != null) return cached;
+      rethrow;
+    }
+  }
+
+  /// Свежий ли и точный ли фикс (для быстрого пути на старте вызова).
+  static bool _isFreshAndAccurate(Position p) {
+    final age = DateTime.now().difference(p.timestamp);
+    return age <= _maxCacheAge &&
+        p.accuracy > 0 &&
+        p.accuracy <= _initialAccuracyThreshold;
+  }
+
+  /// Подходит ли фикс для отправки во время активного вызова — отсекаем
+  /// заведомо грубые сетевые фиксы. Если точность неизвестна (accuracy <= 0),
+  /// фикс пропускаем, чтобы не оборвать трекинг.
+  static bool isAcceptableFix(Position p) {
+    if (p.accuracy <= 0) return true;
+    return p.accuracy <= maxAcceptableAccuracy;
   }
 }

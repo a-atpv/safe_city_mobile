@@ -23,7 +23,19 @@ enum EmergencyStatus {
 }
 
 class EmergencyScreen extends ConsumerStatefulWidget {
-  const EmergencyScreen({super.key});
+  /// When set, the screen resumes tracking this existing call instead of
+  /// creating a new one (used after a call is redirected to another service).
+  final int? existingCallId;
+
+  /// Whether this call was handed off to another service — changes the copy
+  /// shown while a new responder is being found.
+  final bool redirected;
+
+  const EmergencyScreen({
+    super.key,
+    this.existingCallId,
+    this.redirected = false,
+  });
 
   @override
   ConsumerState<EmergencyScreen> createState() => _EmergencyScreenState();
@@ -51,7 +63,23 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
     )..repeat();
     
     _startTimer();
-    _createEmergencyCall();
+    if (widget.existingCallId != null) {
+      _resumeExistingCall(widget.existingCallId!);
+    } else {
+      _createEmergencyCall();
+    }
+  }
+
+  // Resume tracking an already-existing call (e.g. after it was redirected to
+  // another service) without creating a new emergency call.
+  void _resumeExistingCall(int callId) {
+    setState(() {
+      _callId = callId;
+      _status = EmergencyStatus.searching;
+      _isLoading = false;
+    });
+    _pollStatus();
+    _startLocationUpdates();
   }
   
   @override
@@ -93,14 +121,10 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
 
       // 3. Get position
       // Try fast path first (helps in cases where GPS "fix" takes time).
-      Position? position = await Geolocator.getLastKnownPosition();
-      position ??= await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          // Give GPS more time to get a fix before failing.
-          timeLimit: Duration(seconds: 25),
-        ),
-      );
+      // Берём максимально точную стартовую координату: свежий high-accuracy
+      // фикс, а не потенциально устаревший кэш getLastKnownPosition.
+      final position =
+          await LocationPermissionService.getBestInitialPosition();
 
       final success = await ref.read(emergencyProvider.notifier).createCall(
         position.latitude,
@@ -180,6 +204,8 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
             accuracy: LocationAccuracy.high,
           ),
         );
+        // Отсекаем грубые сетевые фиксы.
+        if (!LocationPermissionService.isAcceptableFix(position)) return;
         await ref.read(userProvider.notifier).updateLocation(
           position.latitude,
           position.longitude,
@@ -321,9 +347,9 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
     switch (_status) {
       case EmergencyStatus.created:
       case EmergencyStatus.searching:
-        return 'Поиск охраны...';
+        return widget.redirected ? 'Передаём другой службе...' : 'Поиск охраны...';
       case EmergencyStatus.offerSent:
-        return 'Ожидание ответа...';
+        return widget.redirected ? 'Передаём другой службе...' : 'Ожидание ответа...';
       case EmergencyStatus.accepted:
         return 'Вызов принят';
       case EmergencyStatus.enRoute:
@@ -467,7 +493,9 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
-                  'Ближайшие службы оповещены',
+                  widget.redirected
+                      ? 'Ваш вызов передан другой службе.\nИщем ближайшего свободного сотрудника.'
+                      : 'Ближайшие службы оповещены',
                   style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
