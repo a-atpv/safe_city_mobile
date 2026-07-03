@@ -66,6 +66,11 @@ class SafeCityApp extends ConsumerWidget {
             if (status != null && callId != null) {
               _handleGlobalCallStatusUpdate(ref, status, callId, message);
             }
+          } else if (type == 'call_redirected') {
+            final callId = message['call_id'] as int?;
+            if (callId != null) {
+              _handleGlobalCallRedirected(ref, callId, message);
+            }
           }
         },
       );
@@ -169,4 +174,72 @@ void _handleGlobalCallStatusUpdate(
     emergencyNotifier.updateActiveCallStatus(status);
     emergencyNotifier.getActiveCall();
   }
+}
+
+// The guard handling the call handed it off to another service. Show a
+// dedicated dialog and resume tracking on the searching screen while a new
+// responder is found.
+void _handleGlobalCallRedirected(
+  WidgetRef ref,
+  int callId,
+  Map<String, dynamic> message,
+) {
+  final context = rootNavigatorKey.currentContext;
+  if (context == null) return;
+
+  // Keep local call state fresh (status is now searching/offer_sent again).
+  ref.read(emergencyProvider.notifier).getActiveCall();
+
+  final note = (message['note'] as String?)?.trim();
+  final baseMessage = (message['message'] as String?) ??
+      'Ваш вызов передан другой службе. Ищем ближайшего свободного сотрудника.';
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: const Color(0xFF1E293B),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Row(
+        children: [
+          Icon(Icons.alt_route, color: Color(0xFF2563EB), size: 28),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text('Вызов перенаправлен',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(baseMessage, style: const TextStyle(color: Colors.white70)),
+          if (note != null && note.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text('Комментарий службы:',
+                style: TextStyle(
+                    color: Colors.white.withAlpha(140), fontSize: 12)),
+            const SizedBox(height: 4),
+            Text(note, style: const TextStyle(color: Colors.white)),
+          ],
+        ],
+      ),
+      actions: [
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(ctx);
+            // Resume tracking the existing call on the searching screen.
+            context.go('/emergency', extra: callId);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF2563EB),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: const Text('Понятно', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ),
+  );
 }

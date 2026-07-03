@@ -12,6 +12,8 @@ import '../../features/history/presentation/history_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/settings_screen.dart';
 import '../../features/profile/presentation/documents_screen.dart';
+import '../../features/subscription/presentation/paywall_screen.dart';
+import '../../features/subscription/presentation/payment_status_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
 import '../../shared/providers/auth_provider.dart';
@@ -163,7 +165,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/emergency',
         name: 'emergency',
-        builder: (context, state) => const EmergencyScreen(),
+        builder: (context, state) {
+          // When an existing call id is passed, the screen resumes tracking
+          // that call (e.g. after it was redirected to another service) instead
+          // of creating a brand-new emergency call.
+          final existingCallId = state.extra as int?;
+          return EmergencyScreen(
+            existingCallId: existingCallId,
+            redirected: existingCallId != null,
+          );
+        },
       ),
       GoRoute(
         path: '/emergency/chat',
@@ -180,6 +191,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           final callId = state.extra as int? ?? 0;
           return ReviewScreen(callId: callId);
         },
+      ),
+
+      // Subscription / paywall (full-screen, outside the bottom-nav shell)
+      GoRoute(
+        path: '/subscribe',
+        name: 'subscribe',
+        builder: (context, state) => const PaywallScreen(),
+      ),
+      GoRoute(
+        path: '/subscribe/status',
+        name: 'subscribe_status',
+        builder: (context, state) => const PaymentStatusScreen(),
       ),
     ],
   );

@@ -53,6 +53,8 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   webview_flutter: ^4.13.1
   flutter_multi_formatter: ^2.13.11
+  url_launcher: ^6.3.2
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:

@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api.dart';
 import '../models/subscription.dart';
@@ -146,6 +147,57 @@ class UserNotifier extends Notifier<UserState> {
     }
   }
   
+  Future<bool> uploadAvatar(String filePath) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final fileName = filePath.split('/').last;
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(filePath, filename: fileName),
+      });
+
+      final response = await _apiClient.dio.post(
+        '/user/me/avatar',
+        data: formData,
+      );
+
+      if (response.statusCode == 200) {
+        final user = User.fromJson(response.data);
+        state = state.copyWith(isLoading: false, user: user);
+        return true;
+      }
+      state = state.copyWith(isLoading: false);
+      return false;
+    } on ApiException catch (e) {
+      state = state.copyWith(isLoading: false, error: e.message);
+      return false;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> deleteAvatar() async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final response = await _apiClient.dio.delete('/user/me/avatar');
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        await fetchUser();
+        return true;
+      }
+      state = state.copyWith(isLoading: false);
+      return false;
+    } on ApiException catch (e) {
+      state = state.copyWith(isLoading: false, error: e.message);
+      return false;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
   Future<bool> updateLocation(double latitude, double longitude) async {
     try {
       await _apiClient.dio.post('/user/location', data: {

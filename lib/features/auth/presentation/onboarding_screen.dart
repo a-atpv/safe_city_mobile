@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_multi_formatter/formatters/phone_input_formatter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/widgets.dart';
 import '../../../shared/providers/providers.dart';
@@ -20,6 +22,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _secretPhraseController = TextEditingController();
+
+  XFile? _pickedAvatar;
 
   late final AnimationController _animController;
   late final Animation<double> _fadeAnim;
@@ -63,10 +67,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               : _secretPhraseController.text.trim(),
         );
 
+    if (success && _pickedAvatar != null) {
+      await ref.read(userProvider.notifier).uploadAvatar(_pickedAvatar!.path);
+    }
+
     if (mounted) {
       if (success) {
         ref.read(authProvider.notifier).completeOnboarding();
-        context.go('/home');
+        // Land on home, then present the subscription paywall on top of it.
+        final router = GoRouter.of(context);
+        router.go('/home');
+        router.push('/subscribe');
       } else {
         final error = ref.read(userProvider).error;
         ErrorHandler.showError(context, error);
@@ -79,15 +90,97 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         .read(userProvider.notifier)
         .updateProfile(isNew: false);
 
+    if (success && _pickedAvatar != null) {
+      await ref.read(userProvider.notifier).uploadAvatar(_pickedAvatar!.path);
+    }
+
     if (mounted) {
       if (success) {
         ref.read(authProvider.notifier).completeOnboarding();
-        context.go('/home');
+        // Land on home, then present the subscription paywall on top of it.
+        final router = GoRouter.of(context);
+        router.go('/home');
+        router.push('/subscribe');
       } else {
         final error = ref.read(userProvider).error;
         ErrorHandler.showError(context, error);
       }
     }
+  }
+
+  Future<void> _pickAvatar(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        setState(() => _pickedAvatar = picked);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось выбрать изображение')),
+        );
+      }
+    }
+  }
+
+  void _showAvatarSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.backgroundLight,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.textSecondary.withAlpha(76),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined, color: AppColors.primary),
+                title: const Text('Сделать фото', style: TextStyle(color: AppColors.textPrimary)),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _pickAvatar(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+                title: const Text('Выбрать из галереи', style: TextStyle(color: AppColors.textPrimary)),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _pickAvatar(ImageSource.gallery);
+                },
+              ),
+              if (_pickedAvatar != null)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: AppColors.error),
+                  title: const Text('Убрать фото', style: TextStyle(color: AppColors.error)),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    setState(() => _pickedAvatar = null);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -120,29 +213,84 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                               children: [
                                 const SizedBox(height: 40),
 
-                                // Icon badge
+                                // Avatar picker
                                 Center(
-                                  child: Container(
-                                    width: 72,
-                                    height: 72,
-                                    decoration: BoxDecoration(
-                                      gradient: AppColors.primaryGradient,
-                                      borderRadius: BorderRadius.circular(20),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.primary.withAlpha(
-                                            80,
+                                  child: GestureDetector(
+                                    onTap: userState.isLoading
+                                        ? null
+                                        : _showAvatarSourceSheet,
+                                    child: Stack(
+                                      children: [
+                                        Container(
+                                          width: 96,
+                                          height: 96,
+                                          decoration: BoxDecoration(
+                                            gradient: _pickedAvatar == null
+                                                ? AppColors.primaryGradient
+                                                : null,
+                                            color: _pickedAvatar != null
+                                                ? AppColors.surface
+                                                : null,
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: AppColors.primary
+                                                    .withAlpha(80),
+                                                blurRadius: 24,
+                                                offset: const Offset(0, 8),
+                                              ),
+                                            ],
                                           ),
-                                          blurRadius: 24,
-                                          offset: const Offset(0, 8),
+                                          child: ClipOval(
+                                            child: _pickedAvatar != null
+                                                ? Image.file(
+                                                    File(_pickedAvatar!.path),
+                                                    width: 96,
+                                                    height: 96,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : const Icon(
+                                                    Icons.person_add_outlined,
+                                                    size: 40,
+                                                    color: Colors.white,
+                                                  ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          right: 0,
+                                          bottom: 0,
+                                          child: Container(
+                                            width: 32,
+                                            height: 32,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primary,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: AppColors.backgroundLight,
+                                                width: 2,
+                                              ),
+                                            ),
+                                            child: const Icon(
+                                              Icons.camera_alt,
+                                              size: 16,
+                                              color: Colors.white,
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
-                                    child: const Icon(
-                                      Icons.person_add_outlined,
-                                      size: 36,
-                                      color: Colors.white,
-                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 12),
+
+                                Center(
+                                  child: Text(
+                                    'Добавьте фото профиля',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(color: AppColors.textHint),
                                   ),
                                 ),
 

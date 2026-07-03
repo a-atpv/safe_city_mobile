@@ -9,9 +9,13 @@ class AppConstants {
   static const String refreshTokenKey = 'refresh_token';
   static const String userKey = 'user';
   
-  // Subscription
-  static const int monthlyPriceKzt = 2990;
-  static const int yearlyPriceKzt = 24990;
+  // Subscription (display fallback; source of truth is GET /payments/plans)
+  static const int monthlyPriceKzt = 800;
+  static const int yearlyPriceKzt = 6900;
+  // Auto-renewal: send recurring=true only after «Периодические платежи» is
+  // enabled in the Robokassa cabinet (until then Robokassa returns error 34).
+  // Flip to true at go-live.
+  static const bool subscriptionRecurring = false;
   
   // OTP
   static const int otpLength = 4;

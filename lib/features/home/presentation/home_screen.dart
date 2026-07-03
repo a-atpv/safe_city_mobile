@@ -294,6 +294,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
+              context.push('/subscribe');
             },
             child: const Text('Оформить'),
           ),
@@ -383,6 +384,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildDefaultState(bool hasSubscription) {
+    // When there is no active subscription the SOS button is shown inactive
+    // (grey, no pulse) — tapping it opens the subscription paywall.
+    final Color sosColor =
+        hasSubscription ? AppColors.sosRed : const Color(0xFF6B7280);
+    final Color sosColorDark =
+        hasSubscription ? AppColors.sosRed.withRed(180) : const Color(0xFF4B5563);
     return Column(
       children: [
           _buildHeader(hasSubscription),
@@ -403,24 +410,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     return Stack(
                       alignment: Alignment.center,
                       children: [
-                        // Pulse rings
-                        ...List.generate(3, (index) {
-                          final delay = index * 0.33;
-                          final value = (_pulseController.value + delay) % 1.0;
-                          return Container(
-                            width: 200 + (value * 80),
-                            height: 200 + (value * 80),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.sosRed.withAlpha(
-                                  (76 * (1 - value)).toInt(),
+                        // Pulse rings (only when the button is active)
+                        if (hasSubscription)
+                          ...List.generate(3, (index) {
+                            final delay = index * 0.33;
+                            final value =
+                                (_pulseController.value + delay) % 1.0;
+                            return Container(
+                              width: 200 + (value * 80),
+                              height: 200 + (value * 80),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.sosRed.withAlpha(
+                                    (76 * (1 - value)).toInt(),
+                                  ),
+                                  width: 2,
                                 ),
-                                width: 2,
                               ),
-                            ),
-                          );
-                        }),
+                            );
+                          }),
 
                         // Glow
                         Container(
@@ -430,7 +439,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.sosRed.withAlpha(102),
+                                color: sosColor.withAlpha(102),
                                 blurRadius: 40,
                                 spreadRadius: 10,
                               ),
@@ -446,14 +455,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: RadialGradient(
-                              colors: [
-                                AppColors.sosRed,
-                                AppColors.sosRed.withRed(180),
-                              ],
+                              colors: [sosColor, sosColorDark],
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.sosRed.withAlpha(153),
+                                color: sosColor.withAlpha(153),
                                 blurRadius: 30,
                                 offset: const Offset(0, 10),
                               ),
@@ -483,7 +489,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             Padding(
               padding: const EdgeInsets.all(32),
               child: Text(
-                'Нажмите для вызова охраны',
+                hasSubscription
+                    ? 'Нажмите для вызова охраны'
+                    : 'Подписка не активна — нажмите, чтобы оформить',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),

@@ -1,15 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/widgets.dart';
 import '../../../shared/providers/providers.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Refresh profile on open so the avatar URL (a short-lived presigned S3
+    // link) is always current, even if the cached state holds a stale one.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(userProvider.notifier).fetchUser();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userState = ref.watch(userProvider);
     final user = userState.user;
     
@@ -28,32 +46,9 @@ class ProfileScreen extends ConsumerWidget {
               ),
               
               const SizedBox(height: 32),
-              
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withAlpha(51),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.primary,
-                    width: 3,
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    user?.fullName?.isNotEmpty == true
-                        ? user!.fullName![0].toUpperCase()
-                        : user?.email.substring(0, 1).toUpperCase() ?? '?',
-                    style: const TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ),
-              
+
+              _buildAvatar(context, ref, user, userState.isLoading),
+
               const SizedBox(height: 16),
               
               Text(
@@ -87,8 +82,8 @@ class ProfileScreen extends ConsumerWidget {
               
               _buildMenuItem(
                 context,
-                icon: Icons.credit_card_outlined,
-                title: 'Управление подпиской',
+                icon: Icons.workspace_premium_outlined,
+                title: 'Подписка',
                 trailing: user?.hasActiveSubscription == true
                     ? Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -106,7 +101,7 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                       )
                     : null,
-                onTap: () {},
+                onTap: () => context.push('/subscribe'),
               ),
               
               _buildMenuItem(
@@ -120,7 +115,21 @@ class ProfileScreen extends ConsumerWidget {
                 context,
                 icon: Icons.help_outline,
                 title: 'Поддержка',
-                onTap: () {},
+                onTap: () async {
+                  final Uri emailLaunchUri = Uri(
+                    scheme: 'mailto',
+                    path: 'alekseigradoboev553@gmail.com',
+                  );
+                  try {
+                    await launchUrl(emailLaunchUri);
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Не удалось открыть почтовое приложение')),
+                      );
+                    }
+                  }
+                },
               ),
               
               _buildMenuItem(
@@ -165,6 +174,190 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
   
+  Widget _buildAvatar(BuildContext context, WidgetRef ref, User? user, bool isLoading) {
+    final hasAvatar = user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty;
+    final initial = user?.fullName?.isNotEmpty == true
+        ? user!.fullName![0].toUpperCase()
+        : user?.email.substring(0, 1).toUpperCase() ?? '?';
+
+    return GestureDetector(
+      onTap: isLoading ? null : () => _showAvatarOptions(context, ref, hasAvatar),
+      child: Stack(
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withAlpha(51),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.primary,
+                width: 3,
+              ),
+            ),
+            child: ClipOval(
+              child: hasAvatar
+                  ? CachedNetworkImage(
+                      imageUrl: user.avatarUrl!,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => _avatarInitial(initial),
+                    )
+                  : _avatarInitial(initial),
+            ),
+          ),
+          if (isLoading)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(102),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.backgroundLight, width: 2),
+              ),
+              child: const Icon(
+                Icons.camera_alt,
+                size: 16,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _avatarInitial(String initial) {
+    return Center(
+      child: Text(
+        initial,
+        style: const TextStyle(
+          fontSize: 40,
+          fontWeight: FontWeight.bold,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
+
+  void _showAvatarOptions(BuildContext context, WidgetRef ref, bool hasAvatar) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.backgroundLight,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.textSecondary.withAlpha(76),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined, color: AppColors.primary),
+                title: const Text('Сделать фото', style: TextStyle(color: AppColors.textPrimary)),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _pickAndUpload(context, ref, ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+                title: const Text('Выбрать из галереи', style: TextStyle(color: AppColors.textPrimary)),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _pickAndUpload(context, ref, ImageSource.gallery);
+                },
+              ),
+              if (hasAvatar)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: AppColors.error),
+                  title: const Text('Удалить фото', style: TextStyle(color: AppColors.error)),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    final ok = await ref.read(userProvider.notifier).deleteAvatar();
+                    if (!ok && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Не удалось удалить фото')),
+                      );
+                    }
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndUpload(BuildContext context, WidgetRef ref, ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+
+      final ok = await ref.read(userProvider.notifier).uploadAvatar(picked.path);
+      if (!ok && context.mounted) {
+        final error = ref.read(userProvider).error;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error ?? 'Не удалось загрузить фото')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось выбрать изображение')),
+        );
+      }
+    }
+  }
+
   Widget _buildMenuItem(
     BuildContext context, {
     required IconData icon,
