@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/api/api.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/services/location_permission_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/emergency_call.dart';
@@ -291,13 +292,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             onPressed: () => Navigator.pop(context),
             child: const Text('Закрыть'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.push('/subscribe');
-            },
-            child: const Text('Оформить'),
-          ),
+          // Purchase flow is hidden while payments are disabled.
+          if (AppConstants.paymentEnabled)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                context.push('/subscribe');
+              },
+              child: const Text('Оформить'),
+            ),
         ],
       ),
     );

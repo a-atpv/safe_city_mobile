@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../core/api/api.dart';
 import '../../core/services/push_notification_service.dart';
 import 'emergency_provider.dart';
@@ -71,9 +72,11 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final token = await PushNotificationService().getFcmToken();
       if (token != null) {
+        final packageInfo = await PackageInfo.fromPlatform();
         await _apiClient.registerDevice(
           token: token,
           type: Platform.isIOS ? 'ios' : 'android',
+          appVersion: packageInfo.version,
         );
         debugPrint('User device registered successfully');
       }

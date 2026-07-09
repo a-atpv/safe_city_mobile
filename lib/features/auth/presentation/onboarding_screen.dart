@@ -4,6 +4,7 @@ import 'package:flutter_multi_formatter/formatters/phone_input_formatter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/widgets.dart';
 import '../../../shared/providers/providers.dart';
@@ -74,10 +75,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     if (mounted) {
       if (success) {
         ref.read(authProvider.notifier).completeOnboarding();
-        // Land on home, then present the subscription paywall on top of it.
+        // Land on home. Paywall is hidden while payments are disabled.
         final router = GoRouter.of(context);
         router.go('/home');
-        router.push('/subscribe');
+        if (AppConstants.paymentEnabled) router.push('/subscribe');
       } else {
         final error = ref.read(userProvider).error;
         ErrorHandler.showError(context, error);
@@ -97,10 +98,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     if (mounted) {
       if (success) {
         ref.read(authProvider.notifier).completeOnboarding();
-        // Land on home, then present the subscription paywall on top of it.
+        // Land on home. Paywall is hidden while payments are disabled.
         final router = GoRouter.of(context);
         router.go('/home');
-        router.push('/subscribe');
+        if (AppConstants.paymentEnabled) router.push('/subscribe');
       } else {
         final error = ref.read(userProvider).error;
         ErrorHandler.showError(context, error);

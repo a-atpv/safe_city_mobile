@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/widgets.dart';
 import '../../../shared/providers/providers.dart';
@@ -80,7 +82,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 onTap: () => _showEditProfileDialog(context, ref),
               ),
               
-              _buildMenuItem(
+              // Payments hidden for this release — the paywall entry point is
+              // removed. Subscription status still gates SOS on the home screen.
+              if (AppConstants.paymentEnabled)
+                _buildMenuItem(
                 context,
                 icon: Icons.workspace_premium_outlined,
                 title: 'Подписка',
@@ -136,11 +141,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context,
                 icon: Icons.info_outline,
                 title: 'О приложении',
-                onTap: () {
+                onTap: () async {
+                  final info = await PackageInfo.fromPlatform();
+                  if (!context.mounted) return;
                   showAboutDialog(
                     context: context,
                     applicationName: 'Safe City',
-                    applicationVersion: '1.0.0',
+                    applicationVersion: '${info.version} (${info.buildNumber})',
                     applicationLegalese: '© 2025 Safe City',
                   );
                 },
@@ -420,6 +427,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                 ),
               ),
+              ListTile(
+                leading: const Icon(Icons.gavel_outlined, color: AppColors.primary),
+                title: const Text(
+                  'Публичная оферта',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push(
+                    '/documents',
+                    extra: {
+                      'title': 'Публичная оферта',
+                      'url': 'https://www.safe-city.kz/legal/public-offer',
+                    },
+                  );
+                },
+              ),
+              const Divider(color: AppColors.surfaceBorder, height: 1),
               ListTile(
                 leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.primary),
                 title: const Text(

@@ -9,6 +9,12 @@ class AppConstants {
   static const String refreshTokenKey = 'refresh_token';
   static const String userKey = 'user';
   
+  // Payments feature flag. While false, the whole purchase flow (paywall /
+  // Robokassa checkout) is hidden from the UI — no entry point can reach
+  // `/subscribe`. Subscription STATUS still gates SOS (subs are activated
+  // out-of-band). Flip to true once Robokassa is live & App-Store approved.
+  static const bool paymentEnabled = true;
+
   // Subscription (display fallback; source of truth is GET /payments/plans)
   static const int monthlyPriceKzt = 800;
   static const int yearlyPriceKzt = 6900;

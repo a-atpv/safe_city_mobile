@@ -1,11 +1,17 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/widgets.dart';
 import '../../../shared/providers/providers.dart';
 import '../../../shared/utils/error_handler.dart';
+
+const _offerUrl = 'https://www.safe-city.kz/legal/public-offer';
+const _termsUrl = 'https://www.safe-city.kz/legal/terms-of-service';
+const _privacyUrl = 'https://www.safe-city.kz/legal/privacy-policy';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -17,13 +23,40 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  
+
+  late final TapGestureRecognizer _offerRecognizer =
+      TapGestureRecognizer()..onTap = () => _openUrl(_offerUrl);
+  late final TapGestureRecognizer _termsRecognizer =
+      TapGestureRecognizer()..onTap = () => _openUrl(_termsUrl);
+  late final TapGestureRecognizer _privacyRecognizer =
+      TapGestureRecognizer()..onTap = () => _openUrl(_privacyUrl);
+
   @override
   void dispose() {
     _emailController.dispose();
+    _offerRecognizer.dispose();
+    _termsRecognizer.dispose();
+    _privacyRecognizer.dispose();
     super.dispose();
   }
-  
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.inAppBrowserView,
+      );
+      if (!launched) throw Exception('launchUrl returned false');
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось открыть документ')),
+        );
+      }
+    }
+  }
+
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return 'Введите email';
@@ -174,12 +207,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      'Продолжая, вы соглашаетесь с условиями\nиспользования и политикой конфиденциальности',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 12,
-                      ),
-                      textAlign: TextAlign.center,
+                    child: Builder(
+                      builder: (context) {
+                        final baseStyle =
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontSize: 12,
+                                );
+                        final linkStyle = baseStyle?.copyWith(
+                          color: AppColors.primary,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppColors.primary,
+                        );
+                        return Text.rich(
+                          TextSpan(
+                            style: baseStyle,
+                            children: [
+                              const TextSpan(
+                                text: 'Продолжая, вы принимаете ',
+                              ),
+                              TextSpan(
+                                text: 'публичную оферту',
+                                style: linkStyle,
+                                recognizer: _offerRecognizer,
+                              ),
+                              const TextSpan(text: ', '),
+                              TextSpan(
+                                text: 'условия использования',
+                                style: linkStyle,
+                                recognizer: _termsRecognizer,
+                              ),
+                              const TextSpan(text: ' и '),
+                              TextSpan(
+                                text: 'политику конфиденциальности',
+                                style: linkStyle,
+                                recognizer: _privacyRecognizer,
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
+                        );
+                      },
                     ),
                   ),
                               ],
