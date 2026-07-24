@@ -25,7 +25,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late AnimationController _pulseController;
   Timer? _searchTimer;
   Timer? _statusPollTimer;
-  StreamSubscription<Position>? _locationSubscription;
   bool _isPressed = false;
   bool _isSearchingEmergency = false;
   int _elapsedSeconds = 0;
@@ -51,7 +50,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void dispose() {
     _searchTimer?.cancel();
     _statusPollTimer?.cancel();
-    _locationSubscription?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -130,8 +128,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     _searchTimer?.cancel();
     _statusPollTimer?.cancel();
-    _locationSubscription?.cancel();
-    
+    // Трекинг гасит сам провайдер: cancelCall обнуляет активный вызов.
+
     await ref.read(emergencyProvider.notifier).cancelCall(
       _callId!,
       null,
@@ -191,7 +189,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         });
         _startSearchTimer();
         _startStatusPolling();
-        _startLocationUpdates();
       } else {
         setState(() {
           _error =
@@ -247,22 +244,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
-  void _startLocationUpdates() {
-    _locationSubscription?.cancel();
-    final locationSettings = LocationPermissionService.getLocationSettings();
-
-    _locationSubscription = Geolocator.getPositionStream(
-      locationSettings: locationSettings,
-    ).listen((position) {
-      if (!_isSearchingEmergency) return;
-      // Отсекаем грубые сетевые фиксы, чтобы точка на карте охраны не «прыгала».
-      if (!LocationPermissionService.isAcceptableFix(position)) return;
-      ref.read(userProvider.notifier).updateLocation(
-            position.latitude,
-            position.longitude,
-          );
-    });
-  }
+  // Координаты во время вызова шлёт emergencyLocationProvider — он привязан к
+  // состоянию вызова, а не к экрану, и переживает переход в чат с экипажем.
 
   void _showEmergencyError(String message) {
     if (!mounted) return;
@@ -326,7 +309,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           });
           _startSearchTimer();
           _startStatusPolling();
-          _startLocationUpdates();
         }
       });
     }
@@ -335,6 +317,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (_isSearchingEmergency && _callId != null && emergencyState.activeCall == null && !emergencyState.isLoading) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
+          _searchTimer?.cancel();
+          _statusPollTimer?.cancel();
           setState(() {
             _isSearchingEmergency = false;
             _elapsedSeconds = 0;

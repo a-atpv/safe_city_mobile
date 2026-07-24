@@ -8,10 +8,11 @@ import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
 import 'shared/providers/websocket_provider.dart';
 import 'shared/providers/emergency_provider.dart';
+import 'shared/providers/location_tracking_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   try {
     await Firebase.initializeApp().timeout(const Duration(seconds: 10));
     debugPrint('Firebase initialized');
@@ -26,7 +27,7 @@ void main() async {
     debugPrint('Push notification initialization failed or timed out: $e\n$st');
   }
 
-  
+
   // Set status bar style
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -35,13 +36,13 @@ void main() async {
       statusBarBrightness: Brightness.dark,
     ),
   );
-  
+
   // Lock orientation to portrait
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   runApp(const ProviderScope(child: SafeCityApp()));
 }
 
@@ -51,9 +52,13 @@ class SafeCityApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    
+
     // Watch WS service to auto-connect/disconnect based on authentication status
     ref.watch(webSocketServiceProvider);
+
+    // Держим трекер координат живым: он сам стартует и гаснет по состоянию
+    // активного вызова, поэтому не должен зависеть от того, какой экран открыт.
+    ref.watch(emergencyLocationProvider);
 
     // Listen to WS stream for real-time updates
     ref.listen<AsyncValue<Map<String, dynamic>>>(webSocketStreamProvider, (previous, next) {
@@ -75,7 +80,7 @@ class SafeCityApp extends ConsumerWidget {
         },
       );
     });
-    
+
     return MaterialApp.router(
       title: 'Safe City',
       debugShowCheckedModeBanner: false,

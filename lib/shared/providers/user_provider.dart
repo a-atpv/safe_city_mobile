@@ -198,11 +198,18 @@ class UserNotifier extends Notifier<UserState> {
     }
   }
 
-  Future<bool> updateLocation(double latitude, double longitude) async {
+  Future<bool> updateLocation(
+    double latitude,
+    double longitude, {
+    double? accuracy,
+  }) async {
     try {
       await _apiClient.dio.post('/user/location', data: {
         'latitude': latitude,
         'longitude': longitude,
+        // Let the backend reject coarse/jittery fixes instead of overwriting a
+        // good position (mirrors the guard side).
+        if (accuracy != null && accuracy > 0) 'accuracy': accuracy,
       });
       return true;
     } catch (_) {
