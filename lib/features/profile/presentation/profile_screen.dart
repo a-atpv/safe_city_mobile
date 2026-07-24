@@ -106,7 +106,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                       )
                     : null,
-                onTap: () => context.push('/subscribe'),
+                onTap: () => context.push(
+                  user?.hasActiveSubscription == true
+                      ? '/subscription'
+                      : '/subscribe',
+                ),
               ),
               
               _buildMenuItem(

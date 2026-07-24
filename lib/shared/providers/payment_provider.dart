@@ -8,12 +8,14 @@ class PaymentState {
   final List<Plan> plans;
   final bool isLoadingPlans;
   final bool isCreating;
+  final bool isCancelling;
   final String? error;
 
   const PaymentState({
     this.plans = const [],
     this.isLoadingPlans = false,
     this.isCreating = false,
+    this.isCancelling = false,
     this.error,
   });
 
@@ -21,12 +23,14 @@ class PaymentState {
     List<Plan>? plans,
     bool? isLoadingPlans,
     bool? isCreating,
+    bool? isCancelling,
     String? error,
   }) {
     return PaymentState(
       plans: plans ?? this.plans,
       isLoadingPlans: isLoadingPlans ?? this.isLoadingPlans,
       isCreating: isCreating ?? this.isCreating,
+      isCancelling: isCancelling ?? this.isCancelling,
       error: error,
     );
   }
@@ -85,6 +89,26 @@ class PaymentNotifier extends Notifier<PaymentState> {
     } catch (e) {
       state = state.copyWith(isCreating: false, error: e.toString());
       return null;
+    }
+  }
+
+  /// Turn off auto-renewal. Access is kept until the period ends; only future
+  /// recurring charges stop. Returns true on success (see [PaymentState.error]).
+  Future<bool> cancelSubscription() async {
+    state = state.copyWith(isCancelling: true, error: null);
+    try {
+      await _apiClient.dio.post('/payments/subscription/cancel');
+      state = state.copyWith(isCancelling: false);
+      return true;
+    } on DioException catch (e) {
+      state = state.copyWith(
+        isCancelling: false,
+        error: ApiException.fromDioError(e).message,
+      );
+      return false;
+    } catch (e) {
+      state = state.copyWith(isCancelling: false, error: e.toString());
+      return false;
     }
   }
 }

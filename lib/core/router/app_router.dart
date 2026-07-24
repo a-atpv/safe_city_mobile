@@ -14,6 +14,7 @@ import '../../features/profile/presentation/settings_screen.dart';
 import '../../features/profile/presentation/documents_screen.dart';
 import '../../features/subscription/presentation/paywall_screen.dart';
 import '../../features/subscription/presentation/payment_status_screen.dart';
+import '../../features/subscription/presentation/subscription_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
 import '../../shared/providers/auth_provider.dart';
@@ -203,6 +204,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/subscribe/status',
         name: 'subscribe_status',
         builder: (context, state) => const PaymentStatusScreen(),
+      ),
+      GoRoute(
+        path: '/subscription',
+        name: 'subscription',
+        builder: (context, state) => const SubscriptionScreen(),
       ),
     ],
   );

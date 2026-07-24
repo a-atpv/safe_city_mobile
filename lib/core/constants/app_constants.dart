@@ -22,6 +22,15 @@ class AppConstants {
   // enabled in the Robokassa cabinet (until then Robokassa returns error 34).
   // Flip to true at go-live.
   static const bool subscriptionRecurring = false;
+  // Whether the paywall DESCRIBES the subscription as auto-renewing (amount,
+  // frequency, duration, how to cancel). Deliberately separate from
+  // `subscriptionRecurring`: the Robokassa «Периодические платежи» заявка
+  // requires a screenshot of a form that already spells those terms out, while
+  // the API must keep sending recurring=false until the cabinet approves.
+  // Flip to true for that screenshot build, then permanently together with
+  // `subscriptionRecurring` at go-live. Keep false in shipped builds while
+  // charges are one-off — otherwise the copy promises renewals that never run.
+  static const bool subscriptionRecurringCopy = false;
   
   // OTP
   static const int otpLength = 4;

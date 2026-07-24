@@ -53,7 +53,10 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
 
   bool _isReturnUrl(String url) =>
       url.contains('/payments/robokassa/success') ||
-      url.contains('/payments/robokassa/fail');
+      url.contains('/payments/robokassa/fail') ||
+      // The backend success/fail page redirects here to bounce back to the app;
+      // catch it too so the WebView never chokes on the unknown scheme.
+      url.startsWith('safecity://');
 
   void _close() {
     if (_popped || !mounted) return;

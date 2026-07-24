@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -46,11 +49,56 @@ void main() async {
   runApp(const ProviderScope(child: SafeCityApp()));
 }
 
-class SafeCityApp extends ConsumerWidget {
+class SafeCityApp extends ConsumerStatefulWidget {
   const SafeCityApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SafeCityApp> createState() => _SafeCityAppState();
+}
+
+class _SafeCityAppState extends ConsumerState<SafeCityApp> {
+  final AppLinks _appLinks = AppLinks();
+  StreamSubscription<Uri>? _linkSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _initDeepLinks();
+  }
+
+  /// Handle `safecity://pay/success|fail` deep links used to return the user
+  /// from the payment browser (SFSafariViewController on iOS) back into the app.
+  Future<void> _initDeepLinks() async {
+    _linkSub = _appLinks.uriLinkStream.listen(
+      _handleUri,
+      onError: (_) {},
+    );
+    try {
+      final initial = await _appLinks.getInitialLink();
+      if (initial != null) _handleUri(initial);
+    } catch (_) {}
+  }
+
+  void _handleUri(Uri uri) {
+    if (uri.scheme != 'safecity' || uri.host != 'pay') return;
+    // The status screen polls the backend for the real outcome (the ResultURL
+    // callback is the source of truth); we just land the user back on it.
+    final router = ref.read(routerProvider);
+    if (uri.path.contains('success')) {
+      router.go('/subscribe/status');
+    } else {
+      router.go('/subscribe');
+    }
+  }
+
+  @override
+  void dispose() {
+    _linkSub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
 
     // Watch WS service to auto-connect/disconnect based on authentication status

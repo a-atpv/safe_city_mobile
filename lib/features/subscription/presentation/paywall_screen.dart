@@ -1,12 +1,23 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/providers/payment_provider.dart';
 import '../application/payment_launcher.dart';
 import '../data/payment_models.dart';
+
+const _offerUrl = 'https://www.safe-city.kz/legal/public-offer';
+const _privacyUrl = 'https://www.safe-city.kz/legal/privacy-policy';
+
+const _termsStyle = TextStyle(
+  color: AppColors.textHint,
+  fontSize: 12,
+  height: 1.45,
+);
 
 class PaywallScreen extends ConsumerStatefulWidget {
   const PaywallScreen({super.key});
@@ -17,6 +28,12 @@ class PaywallScreen extends ConsumerStatefulWidget {
 
 class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   String? _selected; // selected plan code
+  bool _consentGiven = false; // gates the pay button, see [_consentBlock]
+
+  late final TapGestureRecognizer _offerRecognizer =
+      TapGestureRecognizer()..onTap = () => _openUrl(_offerUrl);
+  late final TapGestureRecognizer _privacyRecognizer =
+      TapGestureRecognizer()..onTap = () => _openUrl(_privacyUrl);
 
   @override
   void initState() {
@@ -29,9 +46,31 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _offerRecognizer.dispose();
+    _privacyRecognizer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openUrl(String url) async {
+    try {
+      final launched = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.inAppBrowserView,
+      );
+      if (!launched) throw Exception('launchUrl returned false');
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось открыть документ')),
+      );
+    }
+  }
+
   Future<void> _subscribe() async {
     final code = _selected;
-    if (code == null) return;
+    if (code == null || !_consentGiven) return;
 
     final result = await ref
         .read(paymentProvider.notifier)
@@ -107,60 +146,171 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                         for (final p in state.plans) _planCard(p),
                         const SizedBox(height: 16),
                         const _Features(),
-                        const SizedBox(height: 12),
-                        Text(
-                          AppConstants.subscriptionRecurring
-                              ? 'Подписка продлевается автоматически до отмены.'
-                              : 'Оплата за выбранный период.',
-                          style: const TextStyle(
-                            color: AppColors.textHint,
-                            fontSize: 12,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+                        const SizedBox(height: 16),
+                        _recurringTerms(state.plans),
                       ],
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: ElevatedButton(
-                        onPressed: (_selected == null || state.isCreating)
-                            ? null
-                            : _subscribe,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          disabledBackgroundColor: AppColors.backgroundCard,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _consentBlock(),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: ElevatedButton(
+                            onPressed: (_selected == null ||
+                                    !_consentGiven ||
+                                    state.isCreating)
+                                ? null
+                                : _subscribe,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              disabledBackgroundColor: AppColors.backgroundCard,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: state.isCreating
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Оформить',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                           ),
                         ),
-                        child: state.isCreating
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'Оформить',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                      ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
     );
+  }
+
+  /// Recurring terms Robokassa requires on the subscription form itself:
+  /// amount, frequency, duration, and how to switch the charges off. The
+  /// consent to those charges lives in [_consentBlock], next to the button.
+  Widget _recurringTerms(List<Plan> plans) {
+    return Text(
+      AppConstants.subscriptionRecurringCopy
+          ? 'Подписка продлевается автоматически: ${_chargeAmounts(plans)} '
+              '— бессрочно, до отмены. Отключить автопродление можно в '
+              'любой момент: Профиль → Подписка → «Отменить подписку», '
+              'либо обратившись в службу поддержки. После отмены списаний '
+              'больше не будет, доступ сохранится до конца оплаченного '
+              'периода.'
+          : 'Оплата за выбранный период.',
+      style: _termsStyle,
+      textAlign: TextAlign.center,
+    );
+  }
+
+  /// The consent the payment systems require *on the checkout form*, right
+  /// above the pay button: recurring charges, personal-data processing, and
+  /// acceptance of the public оферта (which spells out the recurring rules).
+  /// Ticking the box is the act of consent — until then «Оформить» is disabled,
+  /// so no payment can start without it. Tapping anywhere in the block toggles
+  /// the box; the two links win the tap over their own spans.
+  Widget _consentBlock() {
+    final link = _termsStyle.copyWith(
+      color: AppColors.primary,
+      decoration: TextDecoration.underline,
+      decorationColor: AppColors.primary,
+    );
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => setState(() => _consentGiven = !_consentGiven),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(8, 10, 12, 10),
+        decoration: BoxDecoration(
+          color: AppColors.backgroundCard,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _consentGiven ? AppColors.primary : AppColors.surfaceBorder,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: Checkbox(
+                value: _consentGiven,
+                onChanged: (v) => setState(() => _consentGiven = v ?? false),
+                activeColor: AppColors.primary,
+                checkColor: Colors.white,
+                side: const BorderSide(color: AppColors.textHint, width: 1.5),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  style: _termsStyle,
+                  children: [
+                    const TextSpan(text: 'Я даю согласие '),
+                    if (AppConstants.subscriptionRecurringCopy)
+                      const TextSpan(
+                        text: 'на регулярные (автоматические) списания, ',
+                      ),
+                    const TextSpan(text: 'на '),
+                    TextSpan(
+                      text: 'обработку персональных данных',
+                      style: link,
+                      recognizer: _privacyRecognizer,
+                    ),
+                    const TextSpan(text: ' и принимаю условия '),
+                    TextSpan(
+                      text: 'публичной оферты',
+                      style: link,
+                      recognizer: _offerRecognizer,
+                    ),
+                    TextSpan(
+                      text: AppConstants.subscriptionRecurringCopy
+                          ? ', в которой подробно описаны правила '
+                              'рекуррентных платежей.'
+                          : '.',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// «800 ₸ каждый месяц или 6900 ₸ каждый год», built from the live plans so
+  /// the terms can never drift from the prices on the cards above.
+  String _chargeAmounts(List<Plan> plans) {
+    if (plans.isEmpty) {
+      return '${AppConstants.monthlyPriceKzt} ₸ каждый месяц или '
+          '${AppConstants.yearlyPriceKzt} ₸ каждый год';
+    }
+    return plans
+        .map((p) =>
+            '${p.priceTenge} ₸ ${p.isYearly ? 'каждый год' : 'каждый месяц'}')
+        .join(' или ');
   }
 
   Widget _planCard(Plan p) {
