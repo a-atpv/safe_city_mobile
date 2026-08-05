@@ -185,14 +185,27 @@ class LocationPermissionService {
   // Настройки потока геолокации (платформо-зависимые)
   // ─────────────────────────────────────────────────────────────────────────
 
+  /// Настройки потока на время экстренного вызова.
+  ///
+  /// `bestForNavigation` + нулевой `distanceFilter`: во время SOS расход батареи
+  /// не важен, важно, чтобы точка была максимально точной и не «замирала», когда
+  /// человек стоит или его везут медленно. При `distanceFilter: 10` стоящий на
+  /// месте человек не давал ни одного нового фикса, и на сервер уходил всё более
+  /// старый.
   static LocationSettings getLocationSettings() {
     if (kIsWeb) {
-      return const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10);
+      return const LocationSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 0,
+      );
     }
     if (Platform.isAndroid) {
       return AndroidSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 0,
+        // Просим фикс каждые 2 с — чаще, чем отправка (5 с), чтобы к моменту
+        // отправки координата была свежей, а не «доехавшей» с прошлого раза.
+        intervalDuration: const Duration(seconds: 2),
         // Используем fused-провайдер (Google Play Services) — он точнее за счёт
         // объединения GPS + Wi-Fi + сети + сенсоров. На устройствах без GMS
         // geolocator сам откатится на LocationManager. Прежнее значение
@@ -207,14 +220,19 @@ class LocationPermissionService {
       );
     } else if (Platform.isIOS) {
       return AppleSettings(
-        accuracy: LocationAccuracy.high,
-        activityType: ActivityType.other,
-        distanceFilter: 10,
+        accuracy: LocationAccuracy.bestForNavigation,
+        // otherNavigation, а не other: человека могут везти, и iOS не должна
+        // считать, что можно снизить частоту фиксов.
+        activityType: ActivityType.otherNavigation,
+        distanceFilter: 0,
         pauseLocationUpdatesAutomatically: false,
         showBackgroundLocationIndicator: true,
       );
     }
-    return const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10);
+    return const LocationSettings(
+      accuracy: LocationAccuracy.bestForNavigation,
+      distanceFilter: 0,
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -229,7 +247,12 @@ class LocationPermissionService {
   static const double _initialAccuracyThreshold = 50;
 
   /// Порог точности (в метрах) для непрерывных обновлений во время вызова.
-  /// Чуть мягче, чтобы не терять трекинг в помещении/плотной застройке.
+  ///
+  /// Клиент этим порогом больше ничего не отбрасывает: решение принимает сервер,
+  /// потому что только он знает, есть ли у него точка лучше и не устарела ли она.
+  /// Если фильтровать на клиенте, грубый фикс просто не доедет — и оператор
+  /// увидит «точка не обновляется» там, где приблизительная точка была бы лучше,
+  /// чем никакой. Оставлено для справки и совместимости.
   static const double maxAcceptableAccuracy = 100;
 
   /// Возвращает максимально точную стартовую координату для создания вызова.

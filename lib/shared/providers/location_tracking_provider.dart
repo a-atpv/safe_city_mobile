@@ -20,11 +20,13 @@ const _terminalCallStatuses = {
 /// тем же приёмом, что и `webSocketServiceProvider`.
 final emergencyLocationProvider = Provider<EmergencyLocationService>((ref) {
   final service = EmergencyLocationService(
-    onPosition: (position) => ref.read(userProvider.notifier).updateLocation(
-          position.latitude,
-          position.longitude,
-          accuracy: position.accuracy,
-        ),
+    onPosition: (position, fixAge) =>
+        ref.read(userProvider.notifier).updateLocation(
+              position.latitude,
+              position.longitude,
+              accuracy: position.accuracy,
+              fixAge: fixAge,
+            ),
   );
 
   ref.listen<EmergencyState>(emergencyProvider, (previous, next) {

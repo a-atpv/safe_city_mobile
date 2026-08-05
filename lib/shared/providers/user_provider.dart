@@ -202,6 +202,7 @@ class UserNotifier extends Notifier<UserState> {
     double latitude,
     double longitude, {
     double? accuracy,
+    Duration? fixAge,
   }) async {
     try {
       await _apiClient.dio.post('/user/location', data: {
@@ -210,6 +211,9 @@ class UserNotifier extends Notifier<UserState> {
         // Let the backend reject coarse/jittery fixes instead of overwriting a
         // good position (mirrors the guard side).
         if (accuracy != null && accuracy > 0) 'accuracy': accuracy,
+        // Возраст самого фикса: сервер помечает точку временем GPS, а не
+        // временем запроса, иначе пересланная старая координата выглядит свежей.
+        if (fixAge != null) 'fix_age_ms': fixAge.inMilliseconds,
       });
       return true;
     } catch (_) {
