@@ -3,7 +3,6 @@ import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../constants/app_constants.dart';
@@ -13,9 +12,9 @@ import '../constants/app_constants.dart';
 /// Спрашивает у бэкенда (`GET /app/update`), не устарела ли текущая сборка, и
 /// показывает диалог. Два режима, и разница между ними принципиальная:
 ///
-///  * **обновление доступно** — предложение, которое можно отложить. Повторно
-///    напомним не раньше чем через сутки: приложение с тревожной кнопкой не
-///    должно встречать человека баннером при каждом запуске;
+///  * **обновление доступно** — предложение, которое можно закрыть кнопкой
+///    «Позже». Показывается при каждом запуске приложения, пока человек не
+///    обновится: напоминание раз в сутки слишком легко пропустить;
 ///  * **обновление обязательно** — сборка несовместима с сервером, диалог не
 ///    закрывается. Этот режим включается только сменой `APP_USER_MIN_VERSION`
 ///    на бэкенде и по-настоящему запирает человека, поэтому применять его
@@ -25,9 +24,6 @@ import '../constants/app_constants.dart';
 /// вежливость, а не функция, и мешать запуску она не имеет права.
 class UpdatePrompt {
   UpdatePrompt._();
-
-  static const String _snoozeKey = 'update_prompt_snoozed_at';
-  static const Duration _snoozeFor = Duration(hours: 24);
 
   /// Один раз за запуск: экран может пересоздаваться, диалог — нет.
   static bool _askedThisLaunch = false;
@@ -57,7 +53,6 @@ class UpdatePrompt {
       final isRequired = data['update_required'] == true;
       final isAvailable = data['update_available'] == true;
       if (!isRequired && !isAvailable) return;
-      if (!isRequired && await _snoozed()) return;
 
       if (!context.mounted) return;
       await _show(
@@ -70,19 +65,6 @@ class UpdatePrompt {
     } catch (_) {
       // Молча: обновление подождёт до следующего запуска.
     }
-  }
-
-  static Future<bool> _snoozed() async {
-    final prefs = await SharedPreferences.getInstance();
-    final at = prefs.getInt(_snoozeKey);
-    if (at == null) return false;
-    final shownAt = DateTime.fromMillisecondsSinceEpoch(at);
-    return DateTime.now().difference(shownAt) < _snoozeFor;
-  }
-
-  static Future<void> _snooze() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_snoozeKey, DateTime.now().millisecondsSinceEpoch);
   }
 
   static Future<void> _show(
@@ -123,7 +105,6 @@ class UpdatePrompt {
             if (!isRequired)
               TextButton(
                 onPressed: () {
-                  _snooze();
                   Navigator.pop(ctx);
                 },
                 child: const Text(
