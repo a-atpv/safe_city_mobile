@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Release подписывается для App Store и TestFlight, а те ходят в боевой
+	     APNs. С development-окружением приложение получило бы sandbox-токен, и
+	     ни один пуш о вызове до него бы не дошёл. Отладочные сборки остаются на
+	     Runner.entitlements с development. -->
+	<key>aps-environment</key>
+	<string>production</string>
+</dict>
+</plist>
