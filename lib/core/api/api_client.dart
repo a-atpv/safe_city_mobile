@@ -22,6 +22,16 @@ class ApiClient {
     ),
   );
 
+  /// Перенацеливает оба Dio на текущий адрес из `BackendEnv`.
+  ///
+  /// `BaseOptions.baseUrl` запоминается при создании Dio, а они здесь живут всё
+  /// время работы приложения — после смены сервера в настройках адрес нужно
+  /// переписать, иначе запросы продолжат уходить на прежний бэкенд.
+  void applyBackend() {
+    _dio.options.baseUrl = AppConstants.apiBaseUrl;
+    _refreshDio.options.baseUrl = AppConstants.apiBaseUrl;
+  }
+
   // Callback to trigger logout in the UI/Provider
   void Function()? onLogout;
 

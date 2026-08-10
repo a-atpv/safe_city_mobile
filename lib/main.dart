@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
+import 'core/env/backend_env.dart';
 import 'core/theme/theme.dart';
 import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
@@ -15,6 +16,12 @@ import 'shared/providers/location_tracking_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Какой бэкенд слушаем. Строго первым делом: Dio создаётся лениво и
+  // запоминает baseUrl при создании, а регистрация пуш-токена ниже — уже
+  // сетевой вызов.
+  await BackendEnv.load();
+  debugPrint('Backend: ${BackendEnv.host}');
 
   try {
     await Firebase.initializeApp().timeout(const Duration(seconds: 10));

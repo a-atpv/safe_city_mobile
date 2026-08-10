@@ -1,9 +1,17 @@
+import '../env/backend_env.dart';
+
 class AppConstants {
   AppConstants._();
 
   // API
-  static const String apiBaseUrl = 'https://safe-city-back-7c8ed50edd7d.herokuapp.com/api/v1';
-  
+  /// Адрес бэкенда берётся из [BackendEnv] — по умолчанию прод, тестовая среда
+  /// задаётся при сборке флагом `--dart-define=SAFECITY_API_HOST=…`.
+  ///
+  /// Это геттеры, а не константы: адрес может смениться в рантайме, и всё, что
+  /// его использует, обязано читать значение в момент запроса, а не при старте.
+  /// Долгоживущие Dio перенацеливает `ApiClient.applyBackend()`.
+  static String get apiBaseUrl => BackendEnv.apiBaseUrl;
+
   // Storage keys
   static const String accessTokenKey = 'access_token';
   static const String refreshTokenKey = 'refresh_token';
@@ -40,5 +48,5 @@ class AppConstants {
   static const int locationUpdateIntervalSeconds = 10;
 
   // WebSocket
-  static const String wsUserUrl = 'wss://safe-city-back-7c8ed50edd7d.herokuapp.com/api/v1/ws/user';
+  static String get wsUserUrl => '${BackendEnv.wsBaseUrl}/ws/user';
 }
