@@ -10,6 +10,7 @@ import '../../../core/api/api.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/location_permission_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/update/update_prompt.dart';
 import '../../../shared/models/emergency_call.dart';
 import '../../../shared/providers/providers.dart';
 
@@ -43,6 +44,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(userProvider.notifier).fetchUser();
       ref.read(emergencyProvider.notifier).getActiveCall();
+      // Первый экран после входа — единственное место, где диалог об
+      // обновлении никому не мешает: тревожная кнопка ещё не нажата.
+      UpdatePrompt.maybeShow(context);
     });
   }
   
