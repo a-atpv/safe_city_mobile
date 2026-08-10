@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/api/api.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/location_permission_service.dart';
@@ -194,19 +195,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _startSearchTimer();
         _startStatusPolling();
       } else {
+        final emergencyState = ref.read(emergencyProvider);
         setState(() {
-          _error =
-              ref.read(emergencyProvider).error ?? 'Не удалось создать вызов.';
+          _error = emergencyState.error ?? 'Не удалось создать вызов.';
           _isSearchingEmergency = false;
         });
-        _showEmergencyError(_error!);
+        _showCreateCallError(_error!, emergencyState.errorCode);
       }
     } on ApiException catch (e) {
       setState(() {
         _error = e.message;
         _isSearchingEmergency = false;
       });
-      _showEmergencyError(_error!);
+      _showCreateCallError(_error!, e.code);
     } on DioException catch (e) {
       final apiError = ApiException.fromDioError(e);
       setState(() {
@@ -215,7 +216,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             : apiError.message;
         _isSearchingEmergency = false;
       });
-      _showEmergencyError(_error!);
+      _showCreateCallError(_error!, apiError.code);
     } on LocationServiceDisabledException catch (_) {
       setState(() {
         _error =
@@ -256,6 +257,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+
+  /// Показывает, почему вызов не создан.
+  ///
+  /// Отказ по зоне обслуживания — не сбой, а ответ по существу: снекбар для
+  /// него слишком мимолётный. Человек должен успеть прочитать, что экипаж не
+  /// приедет, и сразу получить рабочий запасной путь — звонок 102.
+  void _showCreateCallError(String message, String? code) {
+    if (!mounted) return;
+    if (code == ApiErrorCodes.outsideServiceArea) {
+      _showOutsideServiceAreaDialog(message);
+      return;
+    }
+    _showEmergencyError(message);
+  }
+
+  void _showOutsideServiceAreaDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.backgroundLight,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.location_off_outlined, color: AppColors.warning),
+            SizedBox(width: 12),
+            Expanded(child: Text('Вы вне зоны обслуживания')),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Закрыть'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _callPolice();
+            },
+            icon: const Icon(Icons.call),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            label: const Text('Позвонить 102'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _callPolice() async {
+    try {
+      await launchUrl(Uri(scheme: 'tel', path: '102'));
+    } catch (_) {
+      _showEmergencyError('Не удалось открыть набор номера. Позвоните 102.');
+    }
   }
 
   String get _formattedTime {

@@ -8,12 +8,18 @@ class EmergencyState {
   final EmergencyCall? activeCall;
   final bool isLoading;
   final String? error;
+
+  /// Машинный код последней ошибки (см. [ApiErrorCodes]) — по нему экран
+  /// решает, показать обычное сообщение или отдельный разбор случая.
+  /// Живёт ровно столько же, сколько [error]: сбрасывается вместе с ним.
+  final String? errorCode;
   final List<CallMessage> messages;
 
   const EmergencyState({
     this.activeCall,
     this.isLoading = false,
     this.error,
+    this.errorCode,
     this.messages = const [],
   });
 
@@ -21,12 +27,14 @@ class EmergencyState {
     EmergencyCall? activeCall,
     bool? isLoading,
     String? error,
+    String? errorCode,
     List<CallMessage>? messages,
   }) {
     return EmergencyState(
       activeCall: activeCall ?? this.activeCall,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      errorCode: errorCode,
       messages: messages ?? this.messages,
     );
   }
@@ -42,7 +50,7 @@ class EmergencyNotifier extends Notifier<EmergencyState> {
   }
 
   Future<bool> createCall(double lat, double lng, String? address) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null, errorCode: null);
     try {
       final response = await _apiClient.dio.post('/emergency/call', data: {
         'latitude': lat,
@@ -59,12 +67,18 @@ class EmergencyNotifier extends Notifier<EmergencyState> {
       state = state.copyWith(isLoading: false);
       return false;
     } on ApiException catch (e) {
-      state = state.copyWith(isLoading: false, error: e.message);
-      return false;
-    } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: ApiException.fromAny(e).message,
+        error: e.message,
+        errorCode: e.code,
+      );
+      return false;
+    } catch (e) {
+      final apiError = ApiException.fromAny(e);
+      state = state.copyWith(
+        isLoading: false,
+        error: apiError.message,
+        errorCode: apiError.code,
       );
       return false;
     }

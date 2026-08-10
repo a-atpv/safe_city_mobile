@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/api/api.dart';
 import '../../../core/services/location_permission_service.dart';
@@ -50,7 +51,13 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
   EmergencyStatus _status = EmergencyStatus.searching;
   int? _callId;
   String? _error;
+  String? _errorCode;
   bool _isLoading = true;
+
+  /// Отказ по зоне обслуживания разбирается отдельно от прочих ошибок: чинить
+  /// пользователю тут нечего, и «Настройки» с «Повторить» только сбивают.
+  bool get _isOutsideServiceArea =>
+      _errorCode == ApiErrorCodes.outsideServiceArea;
 
   @override
   void initState() {
@@ -102,6 +109,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
   Future<void> _createEmergencyCall() async {
     setState(() {
       _error = null;
+      _errorCode = null;
       _isLoading = true;
     });
 
@@ -137,14 +145,17 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
 
         _pollStatus();
       } else {
+        final emergencyState = ref.read(emergencyProvider);
         setState(() {
-          _error = ref.read(emergencyProvider).error ?? 'Не удалось создать вызов.';
+          _error = emergencyState.error ?? 'Не удалось создать вызов.';
+          _errorCode = emergencyState.errorCode;
           _isLoading = false;
         });
       }
     } on ApiException catch (e) {
       setState(() {
         _error = e.message;
+        _errorCode = e.code;
         _isLoading = false;
       });
     } on DioException catch (e) {
@@ -155,6 +166,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
         _error = kDebugMode
             ? '${apiError.message} (status: ${apiError.statusCode})'
             : apiError.message;
+        _errorCode = apiError.code;
         _isLoading = false;
       });
     } on LocationServiceDisabledException catch (_) {
@@ -223,6 +235,17 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
     });
   }
   
+  Future<void> _callPolice() async {
+    try {
+      await launchUrl(Uri(scheme: 'tel', path: '102'));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось открыть набор номера. Позвоните 102.')),
+      );
+    }
+  }
+
   EmergencyStatus _parseStatus(String status) {
     switch (status) {
       case 'created': return EmergencyStatus.created;
@@ -355,85 +378,115 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
         child: SafeArea(
           child: Column(
             children: [
-              // Header
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  color: _statusColor.withAlpha(51),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: _statusColor,
-                        shape: BoxShape.circle,
+              // Header. Только когда вызов действительно создан: «Вызов
+              // активен» над сообщением об отказе — это обещание помощи,
+              // которая не едет.
+              if (_error == null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: _statusColor.withAlpha(51),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: _statusColor,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Вызов активен',
-                      style: TextStyle(
-                        color: _statusColor,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(width: 8),
+                      Text(
+                        'Вызов активен',
+                        style: TextStyle(
+                          color: _statusColor,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              
+
               const Spacer(),
               
-              if (_isLoading || _status == EmergencyStatus.searching)
+              // Крутящийся радар над сообщением об отказе читается как «идёт
+              // поиск охраны» — при ошибке его быть не должно.
+              if (_error == null &&
+                  (_isLoading || _status == EmergencyStatus.searching))
                 _buildRadar(),
               
               if (_error != null) ...[
-                const Icon(
-                  Icons.error_outline,
+                Icon(
+                  _isOutsideServiceArea
+                      ? Icons.location_off_outlined
+                      : Icons.error_outline,
                   size: 80,
-                  color: AppColors.error,
+                  color:
+                      _isOutsideServiceArea ? AppColors.warning : AppColors.error,
                 ),
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Text(
                     _error!,
-                    style: const TextStyle(color: AppColors.error, fontSize: 16),
+                    style: TextStyle(
+                      color: _isOutsideServiceArea
+                          ? AppColors.warning
+                          : AppColors.error,
+                      fontSize: 16,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _createEmergencyCall,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Повторить'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.sosRed,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                if (_isOutsideServiceArea)
+                  // Вызов не создан и создан не будет: «Повторить» и «Настройки»
+                  // тут только тратят время. Единственная полезная кнопка ведёт
+                  // к тем, кто приедет.
+                  ElevatedButton.icon(
+                    onPressed: _callPolice,
+                    icon: const Icon(Icons.call),
+                    label: const Text('Позвонить 102'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.sosRed,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    const SizedBox(width: 12),
-                    OutlinedButton.icon(
-                      onPressed: () => Geolocator.openAppSettings(),
-                      icon: const Icon(Icons.settings),
-                      label: const Text('Настройки'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white70,
-                        side: const BorderSide(color: Colors.white30),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  )
+                else
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _createEmergencyCall,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Повторить'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.sosRed,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: () => Geolocator.openAppSettings(),
+                        icon: const Icon(Icons.settings),
+                        label: const Text('Настройки'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white70,
+                          side: const BorderSide(color: Colors.white30),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
               
               if (!_isLoading && _error == null) ...[
@@ -452,25 +505,29 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
               
               const Spacer(),
               
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  widget.redirected
-                      ? 'Ваш вызов передан другой службе.\nИщем ближайшего свободного сотрудника.'
-                      : 'Ближайшие службы оповещены',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
+              if (_error == null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    widget.redirected
+                        ? 'Ваш вызов передан другой службе.\nИщем ближайшего свободного сотрудника.'
+                        : 'Ближайшие службы оповещены',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
-              
+
               const SizedBox(height: 40),
-              
+
+              // Отменять нечего, если вызов не создан — тогда кнопка просто
+              // выпускает с экрана.
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: _cancelCall,
+                    onPressed:
+                        _error == null ? _cancelCall : () => context.go('/home'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.error,
                       side: const BorderSide(color: AppColors.error, width: 2),
@@ -479,9 +536,9 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
-                      'Отменить вызов',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                    child: Text(
+                      _error == null ? 'Отменить вызов' : 'На главную',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),

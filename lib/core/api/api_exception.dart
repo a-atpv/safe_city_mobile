@@ -2,15 +2,31 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
+/// Коды ошибок, которые приложение показывает по-своему, а не общим текстом.
+///
+/// Сервер присылает их в теле: `{"detail": {"code": …, "message": …}}`. Код
+/// нужен там, где текста мало — например, отказ в вызове вне зоны обслуживания
+/// заслуживает отдельного диалога, а не снекбара среди прочих ошибок сети.
+class ApiErrorCodes {
+  ApiErrorCodes._();
+
+  /// SOS из города, где нет экипажей: вызов не создан.
+  static const String outsideServiceArea = 'outside_service_area';
+}
+
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
   final dynamic data;
 
+  /// Машинный код из тела ответа, если сервер его прислал (см. [ApiErrorCodes]).
+  final String? code;
+
   ApiException({
     required this.message,
     this.statusCode,
     this.data,
+    this.code,
   });
 
   /// Converts any thrown value (Dio, ApiException, etc.) into a user-facing [ApiException].
@@ -66,7 +82,34 @@ class ApiException implements Exception {
       message: message,
       statusCode: statusCode,
       data: response?.data,
+      code: codeFromResponseData(response?.data),
     );
+  }
+
+  /// Достаёт машинный код ошибки из тела ответа. Null, если сервер прислал
+  /// обычную строковую ошибку — тогда у вызывающего есть только [message].
+  static String? codeFromResponseData(dynamic data) {
+    if (data is String) {
+      final trimmed = data.trim();
+      if (trimmed.startsWith('{')) {
+        try {
+          return codeFromResponseData(jsonDecode(trimmed));
+        } catch (_) {
+          return null;
+        }
+      }
+      return null;
+    }
+
+    if (data is Map) {
+      final detail = data['detail'];
+      if (detail is Map && detail['code'] is String) {
+        return detail['code'] as String;
+      }
+      if (data['code'] is String) return data['code'] as String;
+    }
+
+    return null;
   }
 
   /// Extracts a human-readable message from an API error response body.
