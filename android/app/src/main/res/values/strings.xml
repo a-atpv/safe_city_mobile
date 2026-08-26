@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Настройки Meta SDK. Android-часть SDK читает их сама при старте приложения —
+  из Dart сюда ничего не передаётся.
+
+  Значения берутся в developers.facebook.com → приложение → Settings → Basic
+  (App ID) и Settings → Advanced (Client Token). Секретом они не являются: оба
+  лежат в открытом виде внутри установленного APK. А вот забыть их —
+  как раз способ уронить релиз: без client token SDK на iOS падает при старте,
+  на Android молча отбрасывает все события.
+
+  Если сюда когда-нибудь вернутся заглушки REPLACE_WITH_META_*, релизная сборка
+  в CI не пройдёт намеренно — см. job «preflight» в .github/workflows/release.yml.
+-->
+<resources>
+    <string name="facebook_app_id" translatable="false">1609010670738445</string>
+    <string name="facebook_client_token" translatable="false">7ed52de9663df2e1a26d6ec587ea126f</string>
+</resources>

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
+import 'core/analytics/app_analytics.dart';
 import 'core/env/backend_env.dart';
 import 'core/theme/theme.dart';
 import 'core/router/app_router.dart';
@@ -36,6 +37,19 @@ void main() async {
   } catch (e, st) {
     debugPrint('Push notification initialization failed or timed out: $e\n$st');
   }
+
+  // Аналитика рекламных кампаний — Meta и Google Analytics for Firebase.
+  // Оба SDK стартуют нативно, отсюда только согласие на рекламный
+  // идентификатор. Запрос ATT — не здесь, а с главного экрана: системный
+  // диалог на сплеше пользователь закрывает не читая.
+  //
+  // Строго после Firebase.initializeApp() выше: без поднятого Firebase
+  // события Google Analytics уходить некуда.
+  //
+  // Намеренно без await, в отличие от соседей выше: без Firebase и пушей
+  // приложение работать не может, а без аналитики — может, и задерживать из-за
+  // неё экран с тревожной кнопкой неправильно.
+  unawaited(AppAnalytics.initialize());
 
 
   // Set status bar style

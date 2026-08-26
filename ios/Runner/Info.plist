@@ -37,6 +37,12 @@
 			</array>
 		</dict>
 	</array>
+	<key>FacebookAppID</key>
+	<string>1609010670738445</string>
+	<key>FacebookClientToken</key>
+	<string>7ed52de9663df2e1a26d6ec587ea126f</string>
+	<key>FacebookDisplayName</key>
+	<string>Safe City</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
@@ -49,6 +55,19 @@
 	<string>Доступ к галерее нужен, чтобы установить фото профиля</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Доступ к камере нужен, чтобы сделать фото профиля</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Идентификатор используется только для того, чтобы понимать, из какой рекламы приходят пользователи. Работы вызова охраны это не касается: ваше местоположение никуда, кроме службы охраны, не передаётся.</string>
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>v9wttpbfk9.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>n38lu8286q.skadnetwork</string>
+		</dict>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/analytics/app_analytics.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/providers/payment_provider.dart';
@@ -84,6 +87,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           .showSnackBar(SnackBar(content: Text(err)));
       return;
     }
+
+    unawaited(
+      AppAnalytics.logCheckoutStarted(
+        plan: code,
+        amountTiyn: result.amount,
+        currency: result.currency,
+      ),
+    );
 
     await PaymentLauncher.open(context, result.paymentUrl);
     if (!mounted) return;

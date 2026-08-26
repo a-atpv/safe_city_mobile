@@ -32,6 +32,32 @@ class Plan {
   }
 }
 
+/// Платёж, который создан и отправлен на страницу оплаты, но ещё не подтверждён
+/// бэкендом. Экран статуса ждёт именно его и по нему же отправляет событие
+/// покупки в Meta — иначе сумму на том экране взять неоткуда.
+class PendingPayment {
+  final String planCode;
+  final int amount; // in tiyn
+  final String currency;
+  final int paymentId;
+
+  const PendingPayment({
+    required this.planCode,
+    required this.amount,
+    required this.currency,
+    required this.paymentId,
+  });
+
+  factory PendingPayment.of(String planCode, CreatePaymentResult result) {
+    return PendingPayment(
+      planCode: planCode,
+      amount: result.amount,
+      currency: result.currency,
+      paymentId: result.paymentId,
+    );
+  }
+}
+
 class CreatePaymentResult {
   final int paymentId;
   final int invId;

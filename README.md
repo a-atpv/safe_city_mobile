@@ -79,6 +79,33 @@ iOS: добавьте в `ios/Runner/Info.plist`:
 
 Android: добавлено автоматически через `geolocator` пакет.
 
+### Аналитика рекламных кампаний
+
+Событие уходит сразу на две площадки — Meta App Events и Google Analytics for
+Firebase, — поэтому новые события добавляются только через
+`lib/core/analytics/app_analytics.dart`. Звать `MetaAnalytics` или
+`GoogleAnalytics` из экранов не нужно: так событие попадёт лишь в один из двух
+кабинетов, и расхождение заметят не скоро.
+
+Чего в событиях быть не должно: координат, адреса, содержания вызова SOS,
+имени, email и телефона. Причина не в общей осторожности — политика Google Play
+запрещает использовать фоновую геолокацию в рекламных целях, а разрешение на
+неё у приложения есть и проходило отдельное ревью.
+
+Установку считать руками не надо: Meta засчитывает её сама, Firebase шлёт
+`first_open` — это и есть конверсия «Установка приложения» в Google Ads, после
+того как проект Firebase связан с аккаунтом Ads. Ключи Meta лежат в
+`android/app/src/main/res/values/strings.xml` и `ios/Runner/Info.plist`,
+Firebase — в `google-services.json` и `GoogleService-Info.plist`.
+
+Проверить, что события доходят (Firebase Console → Analytics → DebugView):
+
+```bash
+adb shell setprop debug.firebase.analytics.app com.safeCity.appname
+```
+
+Выключить отладочный режим: `adb shell setprop debug.firebase.analytics.app .none.`
+
 ## TODO
 
 - [ ] Интеграция 2GIS карт

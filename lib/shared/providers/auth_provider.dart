@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../core/analytics/app_analytics.dart';
 import '../../core/api/api.dart';
 import '../../core/services/push_notification_service.dart';
 import 'emergency_provider.dart';
@@ -128,6 +130,11 @@ class AuthNotifier extends Notifier<AuthState> {
         );
         await _registerDevice();
         final isNew = response.data['is_new'] as bool? ?? false;
+        // Регистрация считается по флагу с бэкенда: повторный вход того же
+        // человека не должен выглядеть для Meta новой конверсией.
+        if (isNew) {
+          unawaited(AppAnalytics.logRegistration());
+        }
         state = state.copyWith(
           isLoading: false,
           status: AuthStatus.authenticated,

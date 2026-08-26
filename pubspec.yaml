@@ -50,6 +50,11 @@ dependencies:
   web_socket_channel: ^3.0.3
   firebase_core: ^3.6.0
   firebase_messaging: ^15.1.3
+  # Google Analytics for Firebase. Нужен ради атрибуции рекламы в Google Ads:
+  # событие first_open («установка») SDK шлёт сам, остальную воронку шлём мы.
+  # Ветка 11.x — та же, что у firebase_core 3.x и firebase_messaging 15.x;
+  # 12.x требует firebase_core 4, то есть подъёма всей связки разом.
+  firebase_analytics: ^11.5.0
   flutter_local_notifications: ^18.0.1
   webview_flutter: ^4.13.1
   flutter_multi_formatter: ^2.13.11
@@ -57,6 +62,12 @@ dependencies:
   image_picker: ^1.1.2
   package_info_plus: ^9.0.0
   app_links: ^6.3.0
+  # Атрибуция рекламных кампаний Meta. Версия не ниже 0.30: только с неё плагин
+  # умеет UIScene, а Info.plist у нас именно на FlutterSceneDelegate — на
+  # старых версиях SDK не инициализируется и события молча никуда не уходят.
+  facebook_app_events: ^0.30.5
+  # Системный запрос ATT: сам facebook_app_events его не показывает.
+  app_tracking_transparency: ^2.0.7
 
 dev_dependencies:
   flutter_test:

@@ -11,12 +11,18 @@ class PaymentState {
   final bool isCancelling;
   final String? error;
 
+  /// Последний созданный платёж — по нему экран статуса отправляет событие
+  /// покупки в Meta. Сбрасывается сразу после отправки, чтобы одна оплата не
+  /// засчиталась дважды.
+  final PendingPayment? pending;
+
   const PaymentState({
     this.plans = const [],
     this.isLoadingPlans = false,
     this.isCreating = false,
     this.isCancelling = false,
     this.error,
+    this.pending,
   });
 
   PaymentState copyWith({
@@ -25,6 +31,8 @@ class PaymentState {
     bool? isCreating,
     bool? isCancelling,
     String? error,
+    PendingPayment? pending,
+    bool clearPending = false,
   }) {
     return PaymentState(
       plans: plans ?? this.plans,
@@ -32,6 +40,7 @@ class PaymentState {
       isCreating: isCreating ?? this.isCreating,
       isCancelling: isCancelling ?? this.isCancelling,
       error: error,
+      pending: clearPending ? null : (pending ?? this.pending),
     );
   }
 }
@@ -76,10 +85,14 @@ class PaymentNotifier extends Notifier<PaymentState> {
         '/payments/create',
         data: {'plan': planCode, 'recurring': recurring},
       );
-      state = state.copyWith(isCreating: false);
-      return CreatePaymentResult.fromJson(
+      final result = CreatePaymentResult.fromJson(
         response.data as Map<String, dynamic>,
       );
+      state = state.copyWith(
+        isCreating: false,
+        pending: PendingPayment.of(planCode, result),
+      );
+      return result;
     } on DioException catch (e) {
       state = state.copyWith(
         isCreating: false,
@@ -90,6 +103,12 @@ class PaymentNotifier extends Notifier<PaymentState> {
       state = state.copyWith(isCreating: false, error: e.toString());
       return null;
     }
+  }
+
+  /// Забыть подтверждённый платёж — чтобы повторный заход на экран статуса не
+  /// отправил событие покупки второй раз.
+  void clearPending() {
+    state = state.copyWith(clearPending: true);
   }
 
   /// Turn off auto-renewal. Access is kept until the period ends; only future

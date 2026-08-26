@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/analytics/app_analytics.dart';
 import '../../../core/api/api.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/location_permission_service.dart';
@@ -42,12 +43,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     )..repeat();
     
     // Fetch user data and check for active calls on startup
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       ref.read(userProvider.notifier).fetchUser();
       ref.read(emergencyProvider.notifier).getActiveCall();
       // Первый экран после входа — единственное место, где диалог об
       // обновлении никому не мешает: тревожная кнопка ещё не нажата.
-      UpdatePrompt.maybeShow(context);
+      await UpdatePrompt.maybeShow(context);
+      // Запрос ATT — строго после него и только один раз за всё время: два
+      // диалога подряд iOS схлопывает, и системный запрос теряется навсегда.
+      // Раньше главного экрана его показывать нельзя — на сплеше человек
+      // закрывает такое не читая, а второй попытки система не даёт.
+      await AppAnalytics.requestTrackingPermission();
     });
   }
   

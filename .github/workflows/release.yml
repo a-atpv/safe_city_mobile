@@ -32,8 +32,49 @@ env:
   PACKAGE_NAME: com.safeCity.appname
 
 jobs:
+  # Здесь ловятся поломки, которых не видно при сборке: и Meta SDK, и Firebase
+  # настраиваются нативными файлами, а их отсутствие проявляется только в
+  # рантайме — и не всегда падением.
+  preflight:
+    name: Проверки перед сборкой
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Meta SDK читает App ID и client token из нативных ресурсов: с
+      # незаполненными заглушками iOS падает на запуске, а Android молча
+      # выбрасывает все события.
+      - name: Плейсхолдеры Meta SDK заменены
+        run: |
+          FOUND=$(grep -rl 'REPLACE_WITH_META' android/app/src/main/res ios/Runner || true)
+          if [ -n "$FOUND" ]; then
+            echo "✗ App ID / client token Meta не заполнены:" >&2
+            echo "$FOUND" >&2
+            echo "Значения — в developers.facebook.com → Settings → Basic и Settings → Advanced." >&2
+            exit 1
+          fi
+          echo "✓ Meta SDK настроен."
+
+      # Плагин google-services в android/app/build.gradle.kts подключается
+      # только при наличии этого файла — сборка без него не падает, а тихо
+      # выходит без пушей и без Google Analytics. Заметить это можно лишь по
+      # пустым отчётам через неделю после релиза, поэтому проверяем здесь.
+      - name: Конфиги Firebase на месте
+        run: |
+          MISSING=""
+          for f in android/app/google-services.json ios/Runner/GoogleService-Info.plist; do
+            [ -f "$f" ] || MISSING="$MISSING $f"
+          done
+          if [ -n "$MISSING" ]; then
+            echo "✗ Нет конфигов Firebase:$MISSING" >&2
+            echo "Скачать заново: console.firebase.google.com → проект safe-city → настройки приложения." >&2
+            exit 1
+          fi
+          echo "✓ Конфиги Firebase на месте."
+
   android:
     name: Android
+    needs: preflight
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -160,6 +201,7 @@ jobs:
 
   ios:
     name: iOS
+    needs: preflight
     # macos-latest, а не конкретная версия: устаревшие метки GitHub со временем
     # выключает, и пайплайн, который трогают раз в месяц, падал бы на ровном месте.
     runs-on: macos-latest
