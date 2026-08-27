@@ -88,7 +88,10 @@ class _SafeCityAppState extends ConsumerState<SafeCityApp> {
   }
 
   /// Handle `safecity://pay/success|fail` deep links used to return the user
-  /// from the payment browser (SFSafariViewController on iOS) back into the app.
+  /// from the payment page back into the app. Both platforms now pay inside
+  /// [PaymentWebViewScreen], which catches the return URL itself and closes —
+  /// so this only fires when the trip actually left the app (a bank app during
+  /// 3DS, say).
   Future<void> _initDeepLinks() async {
     _linkSub = _appLinks.uriLinkStream.listen(
       _handleUri,
@@ -105,11 +108,16 @@ class _SafeCityAppState extends ConsumerState<SafeCityApp> {
     // The status screen polls the backend for the real outcome (the ResultURL
     // callback is the source of truth); we just land the user back on it.
     final router = ref.read(routerProvider);
-    if (uri.path.contains('success')) {
-      router.go('/subscribe/status');
-    } else {
-      router.go('/subscribe');
-    }
+    final target =
+        uri.path.contains('success') ? '/subscribe/status' : '/subscribe';
+    // The screen may already be up — the paywall pushes it as soon as the
+    // payment page closes. Going there again stacks a second identical copy,
+    // and then «назад» pops onto its twin and looks like it did nothing.
+    // `currentConfiguration` (not `state`) because the link can arrive before
+    // the router has resolved anything, and `state` throws on an empty match
+    // list.
+    if (router.routerDelegate.currentConfiguration.uri.path == target) return;
+    router.go(target);
   }
 
   @override

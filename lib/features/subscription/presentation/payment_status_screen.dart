@@ -110,7 +110,20 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        // No back arrow on purpose: popping lands on the paywall, and offering
+        // to pay again while a payment is being confirmed is the wrong exit.
         automaticallyImplyLeading: false,
+        // Waiting still needs a way out. The poll runs for two minutes before
+        // it gives up, and until it does this screen has nothing to press.
+        actions: [
+          TextButton(
+            onPressed: () => context.go('/home'),
+            child: const Text(
+              'Закрыть',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+        ],
       ),
       body: Center(
         child: Padding(

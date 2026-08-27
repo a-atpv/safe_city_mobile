@@ -12,30 +12,33 @@ import WebKit
 
     // ── WKWebView background freeze (0x8badf00d prevention) ──────────────
     //
-    // Suspend the JS engine when the app loses focus; resume when it returns.
+    // Swiping the app away on the card-entry form and coming back killed it:
+    // the payment page keeps JS busy, and the watchdog kills a process that
+    // takes too long to suspend. Stopping the JS engine on the way out gives
+    // it nothing to be busy with.
     //
-    // IMPORTANT: we do NOT inject timer-killing JS (clearInterval, etc.)
-    // or call window.stop(). That destroys the payment page's internal
-    // state — Robokassa's timers, event listeners, and XHR handlers die
-    // and the page becomes unresponsive after returning from background.
+    // The pair is didEnterBackground/willEnterForeground, NOT
+    // willResignActive/didBecomeActive. Resigning active is not backgrounding:
+    // it fires for the notification banner carrying the 3DS code, Control
+    // Center, an incoming call. Cutting JS on those kills the payment page in
+    // the middle of a payment, which is exactly what the watchdog fix must not
+    // do. The suspend deadline is tied to entering the background, so that is
+    // the only place worth acting.
     //
-    // Instead we use two SYNCHRONOUS operations:
-    //   • stopLoading()  — cancels pending navigations (not XHR/fetch)
-    //   • javaScriptEnabled = false — pauses the JS engine entirely
-    //
-    // When JS is re-enabled on foreground, pending timers and handlers
-    // resume from where they stopped.
+    // We also do NOT inject timer-killing JS, call stopLoading(), or navigate
+    // to about:blank. Any of those wipes the entered card details and breaks
+    // 3DS; disabling the engine leaves the DOM, form state, and cookies alone.
     NotificationCenter.default.addObserver(
       self,
-      selector: #selector(handleWillResignActive),
-      name: UIApplication.willResignActiveNotification,
+      selector: #selector(handleDidEnterBackground),
+      name: UIApplication.didEnterBackgroundNotification,
       object: nil
     )
 
     NotificationCenter.default.addObserver(
       self,
-      selector: #selector(handleDidBecomeActive),
-      name: UIApplication.didBecomeActiveNotification,
+      selector: #selector(handleWillEnterForeground),
+      name: UIApplication.willEnterForegroundNotification,
       object: nil
     )
 
@@ -44,22 +47,18 @@ import WebKit
 
   // MARK: - Freeze / unfreeze WKWebViews
 
-  @objc private func handleWillResignActive() {
+  @objc private func handleDidEnterBackground() {
     forEachWKWebView { webView in
-      // Pause the JavaScript engine (synchronous property set). The engine
-      // stops processing any tasks — timer callbacks, XHR handlers,
-      // requestAnimationFrame — so nothing runs on the main thread and the
-      // iOS watchdog has no reason to kill the process.
-      // NOTE: We do NOT call webView.stopLoading() so in-flight 3DS redirects
-      // or payment form submissions are not aborted when switching to SMS.
+      // Synchronous property set, so it lands before the process suspends.
+      // Deprecated since iOS 14 in favour of WKWebpagePreferences, but that
+      // replacement is read at navigation time only — this is the one that
+      // reaches the page already on screen.
       webView.configuration.preferences.javaScriptEnabled = false
     }
   }
 
-  @objc private func handleDidBecomeActive() {
+  @objc private func handleWillEnterForeground() {
     forEachWKWebView { webView in
-      // Resume the JavaScript engine. Pending timers and event handlers
-      // continue from where they were paused.
       webView.configuration.preferences.javaScriptEnabled = true
     }
   }
