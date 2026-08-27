@@ -13,6 +13,6 @@
   в CI не пройдёт намеренно — см. job «preflight» в .github/workflows/release.yml.
 -->
 <resources>
-    <string name="facebook_app_id" translatable="false">1609010670738445</string>
-    <string name="facebook_client_token" translatable="false">7ed52de9663df2e1a26d6ec587ea126f</string>
+    <string name="facebook_app_id" translatable="false">1044135281787917</string>
+    <string name="facebook_client_token" translatable="false">8e3e3629caf2daed665054b75d1ccb55</string>
 </resources>
