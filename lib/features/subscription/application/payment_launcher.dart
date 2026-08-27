@@ -1,28 +1,25 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../presentation/payment_webview_screen.dart';
 
 /// Opens the Robokassa payment page for a given payment URL.
 ///
-/// * Android — an in-app [PaymentWebViewScreen] (auto-closes on return); the
-///   future completes when that screen is popped.
-/// * iOS — SFSafariViewController via `url_launcher` (App-Store friendly:
-///   payment happens outside the app UI). The future completes right after the
-///   sheet is presented.
+/// Uses an in-app [PaymentWebViewScreen] on **both** platforms. The screen
+/// implements [WidgetsBindingObserver] to freeze/blank the WebView when the app
+/// goes to background, preventing iOS watchdog kills (`0x8badf00d`).
 ///
-/// In both cases the caller must confirm the outcome by polling the
-/// subscription status afterwards — this only opens the page.
+/// Previously iOS used `SFSafariViewController` via `url_launcher`, but its
+/// internal WebContent process kept the main thread blocked in background,
+/// triggering the watchdog. In-app WebView gives us full lifecycle control.
+///
+/// The future completes when the payment screen is popped (either by the user
+/// or automatically when Robokassa redirects to the success/fail callback).
+/// The caller must confirm the outcome by polling the subscription status
+/// afterwards — this only opens the page.
 class PaymentLauncher {
   static Future<void> open(BuildContext context, String url) async {
-    if (Platform.isAndroid) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => PaymentWebViewScreen(url: url)),
-      );
-    } else {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.inAppBrowserView);
-    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => PaymentWebViewScreen(url: url)),
+    );
   }
 }
