@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/app_constants.dart';
 import '../../l10n/app_language.dart';
 import 'api_exception.dart';
+import 'device_identity.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
@@ -35,6 +36,20 @@ class ApiClient {
 
   // Callback to trigger logout in the UI/Provider
   void Function()? onLogout;
+
+  /// Причина, по которой сервер оборвал сессию, если он её назвал (например,
+  /// в аккаунт вошли на другом телефоне). Экран входа забирает её один раз и
+  /// показывает человеку: молчаливый вылет из приложения с одной кнопкой — то,
+  /// на что жалуются в первую очередь.
+  String? _sessionEndReason;
+
+  /// Забрать причину и забыть её: обычный выход из аккаунта не должен потом
+  /// показывать чужое объяснение.
+  String? takeSessionEndReason() {
+    final reason = _sessionEndReason;
+    _sessionEndReason = null;
+    return reason;
+  }
 
   /// Marks a request already retried once after a renew, so a server that keeps
   /// answering 401 can't spin the interceptor forever.
@@ -79,6 +94,9 @@ class ApiClient {
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
+        // Кто мы: аккаунт закреплён за одним устройством, и сервер сверяет его
+        // на каждом запросе (DeviceIdentity). Читается один раз за запуск.
+        options.headers.addAll(await DeviceIdentity().headers());
         // Язык интерфейса: на нём сервер пишет тексты ошибок и письмо с кодом.
         options.headers['Accept-Language'] = AppLanguageStore.current.code;
         return handler.next(options);
@@ -167,9 +185,11 @@ class ApiClient {
       final response = await _refreshDio.post(
         '/auth/refresh',
         data: {'refresh_token': refreshToken},
-        // У этого Dio нет интерцепторов (чтобы не было рекурсии), так что язык
-        // сюда нужно положить руками.
+        // У этого Dio нет интерцепторов (чтобы не было рекурсии), так что
+        // устройство и язык сюда нужно положить руками. Язык важен: именно
+        // этот ответ объясняет «вы вошли на другом устройстве».
         options: Options(headers: {
+          ...await DeviceIdentity().headers(),
           'Accept-Language': AppLanguageStore.current.code,
         }),
       );
@@ -193,6 +213,10 @@ class ApiClient {
         // The refresh token itself is expired or invalid — the only case where
         // the user genuinely has to sign in again.
         debugPrint('Token refresh rejected by server ($status), ending session');
+        if (ApiException.codeFromResponseData(e.response?.data) ==
+            ApiErrorCodes.deviceSessionMoved) {
+          _sessionEndReason = ApiException.messageFromResponseData(e.response?.data);
+        }
         await _endSession();
         return null;
       }

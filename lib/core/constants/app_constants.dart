@@ -16,6 +16,9 @@ class AppConstants {
   static const String accessTokenKey = 'access_token';
   static const String refreshTokenKey = 'refresh_token';
   static const String userKey = 'user';
+  // Идентификатор этой установки приложения: по нему сервер держит привязку
+  // аккаунта к одному устройству (см. DeviceIdentity).
+  static const String deviceIdKey = 'device_id';
   
   // Payments feature flag. While false, the whole purchase flow (paywall /
   // Robokassa checkout) is hidden from the UI — no entry point can reach

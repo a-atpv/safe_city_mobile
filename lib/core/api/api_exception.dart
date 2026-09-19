@@ -14,6 +14,15 @@ class ApiErrorCodes {
 
   /// SOS из города, где нет экипажей: вызов не создан.
   static const String outsideServiceArea = 'outside_service_area';
+
+  /// В аккаунт вошли на другом устройстве — эта сессия закончилась. Приходит
+  /// с 401, приложение по нему разлогинивается как обычно, но человеку можно
+  /// объяснить причину, а не показывать «сессия истекла».
+  static const String deviceSessionMoved = 'device_session_moved';
+
+  /// Аккаунт уже слишком часто переносили на новые устройства. В detail —
+  /// retry_after (секунды) и next_switch_at (когда перенос снова возможен).
+  static const String deviceSwitchLimit = 'device_switch_limit';
 }
 
 class ApiException implements Exception {

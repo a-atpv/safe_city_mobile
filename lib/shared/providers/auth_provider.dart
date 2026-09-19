@@ -166,7 +166,17 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       ref.read(emergencyProvider.notifier).clearActiveCall();
     } catch (_) {}
-    state = const AuthState(status: AuthStatus.unauthenticated);
+    // Если сессию оборвал сервер (в аккаунт вошли на другом телефоне), причина
+    // приезжает сюда и доживает до экрана входа. При обычном выходе её нет.
+    state = AuthState(
+      status: AuthStatus.unauthenticated,
+      error: _apiClient.takeSessionEndReason(),
+    );
+  }
+
+  /// Убрать показанное сообщение, чтобы оно не всплыло второй раз.
+  void clearError() {
+    if (state.error != null) state = state.copyWith();
   }
 
   void completeOnboarding() {

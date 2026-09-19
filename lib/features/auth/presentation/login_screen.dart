@@ -34,6 +34,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       TapGestureRecognizer()..onTap = () => _openUrl(_privacyUrl);
 
   @override
+  void initState() {
+    super.initState();
+    // Сессию мог оборвать сервер — например, в аккаунт вошли на другом
+    // телефоне. Экран входа открывается уже после этого, и ref.listen ниже
+    // такой переход не увидит: причину забираем сами, один раз за открытие.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final reason = ref.read(authProvider).error;
+      if (reason == null) return;
+      ErrorHandler.showError(context, reason);
+      ref.read(authProvider.notifier).clearError();
+    });
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _offerRecognizer.dispose();
