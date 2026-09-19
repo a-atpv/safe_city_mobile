@@ -129,7 +129,11 @@ class AuthNotifier extends Notifier<AuthState> {
           response.data['refresh_token'],
         );
         await _registerDevice();
-        final isNew = response.data['is_new'] as bool? ?? false;
+        // Сервер отдаёт флаг под обоими именами: isNew исторически, is_new —
+        // ради сборок, которые читают только его. Берём любое непустое.
+        final isNew = (response.data['is_new'] ?? response.data['isNew'])
+                as bool? ??
+            false;
         // Регистрация считается по флагу с бэкенда: повторный вход того же
         // человека не должен выглядеть для Meta новой конверсией.
         if (isNew) {
