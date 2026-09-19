@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
+import '../../l10n/l10n.dart';
 
 class MainScaffold extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -41,21 +42,21 @@ class MainScaffold extends StatelessWidget {
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 type: BottomNavigationBarType.fixed,
-                items: const [
+                items: [
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.shield_outlined),
-                    activeIcon: Icon(Icons.shield),
-                    label: 'Главная',
+                    icon: const Icon(Icons.shield_outlined),
+                    activeIcon: const Icon(Icons.shield),
+                    label: context.l10n.navHome,
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.history_outlined),
-                    activeIcon: Icon(Icons.history),
-                    label: 'История',
+                    icon: const Icon(Icons.history_outlined),
+                    activeIcon: const Icon(Icons.history),
+                    label: context.l10n.navHistory,
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.person_outline),
-                    activeIcon: Icon(Icons.person),
-                    label: 'Профиль',
+                    icon: const Icon(Icons.person_outline),
+                    activeIcon: const Icon(Icons.person),
+                    label: context.l10n.profileTitle,
                   ),
                 ],
               ),

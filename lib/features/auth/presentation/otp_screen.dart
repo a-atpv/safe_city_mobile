@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../l10n/l10n.dart';
 import '../../../shared/widgets/widgets.dart';
 import '../../../shared/providers/providers.dart';
 import '../../../shared/utils/error_handler.dart';
@@ -115,6 +116,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final authState = ref.watch(authProvider);
 
     ref.listen<AuthState>(authProvider, (previous, next) {
@@ -169,14 +171,14 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 const SizedBox(height: 32),
                 
                 Text(
-                  'Введите код',
+                  l10n.otpTitle,
                   style: Theme.of(context).textTheme.headlineLarge,
                 ),
                 
                 const SizedBox(height: 8),
                 
                 Text(
-                  'Код отправлен на $_maskedEmail',
+                  l10n.otpSentTo(_maskedEmail),
                   style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
@@ -237,8 +239,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   onPressed: _resendSeconds == 0 ? _resendCode : null,
                   child: Text(
                     _resendSeconds > 0
-                        ? 'Отправить повторно через $_resendSeconds сек'
-                        : 'Отправить повторно',
+                        ? l10n.otpResendIn(_resendSeconds)
+                        : l10n.otpResend,
                     style: TextStyle(
                       color: _resendSeconds > 0
                           ? AppColors.textSecondary
@@ -250,7 +252,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 const SizedBox(height: 24),
                 
                 PrimaryButton(
-                  text: 'Подтвердить',
+                  text: l10n.otpConfirm,
                   isLoading: authState.isLoading,
                   onPressed: _code.length == AppConstants.otpLength ? _verifyOtp : null,
                   width: double.infinity,

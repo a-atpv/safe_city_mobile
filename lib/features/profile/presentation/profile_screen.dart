@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/l10n.dart';
 import '../../../shared/widgets/widgets.dart';
 import '../../../shared/providers/providers.dart';
 
@@ -30,9 +31,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final language = ref.watch(appLanguageProvider);
     final userState = ref.watch(userProvider);
     final user = userState.user;
-    
+
     return Container(
       decoration: const BoxDecoration(
         gradient: AppColors.backgroundGradient,
@@ -43,7 +46,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           child: Column(
             children: [
               Text(
-                'Профиль',
+                l10n.profileTitle,
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
               
@@ -54,7 +57,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 16),
               
               Text(
-                user?.fullName ?? 'Пользователь',
+                user?.fullName ?? l10n.commonUser,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               
@@ -78,7 +81,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _buildMenuItem(
                 context,
                 icon: Icons.person_outline,
-                title: 'Личные данные',
+                title: l10n.profilePersonalData,
                 onTap: () => _showEditProfileDialog(context, ref),
               ),
               
@@ -88,7 +91,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _buildMenuItem(
                 context,
                 icon: Icons.workspace_premium_outlined,
-                title: 'Подписка',
+                title: l10n.profileSubscription,
                 trailing: user?.hasActiveSubscription == true
                     ? Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -96,9 +99,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           color: AppColors.success.withAlpha(51),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          'Активна',
-                          style: TextStyle(
+                        child: Text(
+                          l10n.profileSubscriptionActive,
+                          style: const TextStyle(
                             color: AppColors.success,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -115,15 +118,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               
               _buildMenuItem(
                 context,
+                icon: Icons.language,
+                title: l10n.languageTitle,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      language.nativeName,
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
+                onTap: () => showLanguagePicker(context),
+              ),
+
+              _buildMenuItem(
+                context,
                 icon: Icons.description_outlined,
-                title: 'Документы',
+                title: l10n.profileDocuments,
                 onTap: () => _showDocumentsBottomSheet(context),
               ),
               
               _buildMenuItem(
                 context,
                 icon: Icons.help_outline,
-                title: 'Поддержка',
+                title: l10n.profileSupport,
                 onTap: () async {
                   final Uri emailLaunchUri = Uri(
                     scheme: 'mailto',
@@ -134,7 +158,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Не удалось открыть почтовое приложение')),
+                        SnackBar(content: Text(l10n.profileMailAppFailed)),
                       );
                     }
                   }
@@ -144,7 +168,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _buildMenuItem(
                 context,
                 icon: Icons.info_outline,
-                title: 'О приложении',
+                title: l10n.profileAbout,
                 onTap: () async {
                   final info = await PackageInfo.fromPlatform();
                   if (!context.mounted) return;
@@ -162,7 +186,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _buildMenuItem(
                 context,
                 icon: Icons.logout,
-                title: 'Выйти',
+                title: l10n.profileLogout,
                 color: AppColors.error,
                 onTap: () => _showLogoutDialog(context, ref),
               ),
@@ -171,9 +195,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               
               TextButton(
                 onPressed: () => _showDeleteAccountDialog(context, ref),
-                child: const Text(
-                  'Удалить аккаунт',
-                  style: TextStyle(color: AppColors.error),
+                child: Text(
+                  l10n.profileDeleteAccount,
+                  style: const TextStyle(color: AppColors.error),
                 ),
               ),
               
@@ -307,7 +331,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_camera_outlined, color: AppColors.primary),
-                title: const Text('Сделать фото', style: TextStyle(color: AppColors.textPrimary)),
+                title: Text(context.l10n.profileTakePhoto, style: const TextStyle(color: AppColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _pickAndUpload(context, ref, ImageSource.camera);
@@ -315,7 +339,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
-                title: const Text('Выбрать из галереи', style: TextStyle(color: AppColors.textPrimary)),
+                title: Text(context.l10n.profileChooseFromGallery, style: const TextStyle(color: AppColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _pickAndUpload(context, ref, ImageSource.gallery);
@@ -324,13 +348,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               if (hasAvatar)
                 ListTile(
                   leading: const Icon(Icons.delete_outline, color: AppColors.error),
-                  title: const Text('Удалить фото', style: TextStyle(color: AppColors.error)),
+                  title: Text(context.l10n.profileDeletePhoto, style: const TextStyle(color: AppColors.error)),
                   onTap: () async {
                     Navigator.pop(sheetContext);
                     final ok = await ref.read(userProvider.notifier).deleteAvatar();
                     if (!ok && context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Не удалось удалить фото')),
+                        SnackBar(content: Text(context.l10n.profilePhotoDeleteFailed)),
                       );
                     }
                   },
@@ -357,13 +381,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (!ok && context.mounted) {
         final error = ref.read(userProvider).error;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error ?? 'Не удалось загрузить фото')),
+          SnackBar(content: Text(error ?? context.l10n.profilePhotoUploadFailed)),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось выбрать изображение')),
+          SnackBar(content: Text(context.l10n.profileImagePickFailed)),
         );
       }
     }
@@ -399,6 +423,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _showDocumentsBottomSheet(BuildContext context) {
+    final l10n = context.l10n;
+    // Документы пока только на русском (решение владельца от 18.09.2026):
+    // перевод юридического текста должен вычитать юрист.
+    final russianOnly = ref.read(appLanguageProvider) != AppLanguage.ru;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.backgroundLight,
@@ -420,29 +448,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 child: Text(
-                  'Документы',
-                  style: TextStyle(
+                  l10n.profileDocuments,
+                  style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
+              if (russianOnly)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  child: Text(
+                    l10n.documentsRussianOnly,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
               ListTile(
                 leading: const Icon(Icons.gavel_outlined, color: AppColors.primary),
-                title: const Text(
-                  'Публичная оферта',
-                  style: TextStyle(color: AppColors.textPrimary),
+                title: Text(
+                  l10n.documentsPublicOffer,
+                  style: const TextStyle(color: AppColors.textPrimary),
                 ),
                 onTap: () {
                   Navigator.pop(context);
                   context.push(
                     '/documents',
                     extra: {
-                      'title': 'Публичная оферта',
+                      'title': l10n.documentsPublicOffer,
                       'url': 'https://www.safe-city.kz/legal/public-offer',
                     },
                   );
@@ -451,16 +491,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const Divider(color: AppColors.surfaceBorder, height: 1),
               ListTile(
                 leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.primary),
-                title: const Text(
-                  'Политика конфиденциальности',
-                  style: TextStyle(color: AppColors.textPrimary),
+                title: Text(
+                  l10n.documentsPrivacyPolicy,
+                  style: const TextStyle(color: AppColors.textPrimary),
                 ),
                 onTap: () {
                   Navigator.pop(context);
                   context.push(
                     '/documents',
                     extra: {
-                      'title': 'Политика конфиденциальности',
+                      'title': l10n.documentsPrivacyPolicy,
                       'url': 'https://www.safe-city.kz/legal/privacy-policy',
                     },
                   );
@@ -469,16 +509,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const Divider(color: AppColors.surfaceBorder, height: 1),
               ListTile(
                 leading: const Icon(Icons.description_outlined, color: AppColors.primary),
-                title: const Text(
-                  'Пользовательское соглашение',
-                  style: TextStyle(color: AppColors.textPrimary),
+                title: Text(
+                  l10n.documentsUserAgreement,
+                  style: const TextStyle(color: AppColors.textPrimary),
                 ),
                 onTap: () {
                   Navigator.pop(context);
                   context.push(
                     '/documents',
                     extra: {
-                      'title': 'Пользовательское соглашение',
+                      'title': l10n.documentsUserAgreement,
                       'url': 'https://www.safe-city.kz/legal/terms-of-service',
                     },
                   );
@@ -492,6 +532,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
   
   void _showEditProfileDialog(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final user = ref.read(userProvider).user;
     final nameController = TextEditingController(text: user?.fullName);
     final phoneController = TextEditingController(text: user?.phone);
@@ -504,24 +545,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppColors.backgroundLight,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Редактировать профиль'),
+          title: Text(l10n.profileEditTitle),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Имя',
-                    hintText: 'Введите ваше имя',
+                  decoration: InputDecoration(
+                    labelText: l10n.profileNameLabel,
+                    hintText: l10n.profileNameHint,
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: phoneController,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Телефон',
+                  decoration: InputDecoration(
+                    labelText: l10n.profilePhoneLabel,
                     hintText: '+7 (777) 123-45-67',
                   ),
                 ),
@@ -530,8 +571,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   controller: secretPhraseController,
                   obscureText: obscurePhrase,
                   decoration: InputDecoration(
-                    labelText: 'Секретный код',
-                    hintText: 'Слово для отмены вызова',
+                    labelText: l10n.profileSecretLabel,
+                    hintText: l10n.profileSecretHint,
                     suffixIcon: IconButton(
                       icon: Icon(
                         obscurePhrase ? Icons.visibility_outlined : Icons.visibility_off_outlined,
@@ -542,9 +583,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Используется для подтверждения отмены вызова охраны',
-                  style: TextStyle(
+                Text(
+                  l10n.profileSecretHelp,
+                  style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.textHint,
                   ),
@@ -555,7 +596,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Отмена'),
+              child: Text(l10n.commonCancel),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -568,7 +609,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 );
                 if (ctx.mounted) Navigator.pop(ctx);
               },
-              child: const Text('Сохранить'),
+              child: Text(l10n.commonSave),
             ),
           ],
         ),
@@ -582,11 +623,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.backgroundLight,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Выйти из аккаунта?'),
+        title: Text(context.l10n.profileLogoutConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена'),
+            child: Text(context.l10n.commonCancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -598,7 +639,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Выйти'),
+            child: Text(context.l10n.profileLogout),
           ),
         ],
       ),
@@ -611,14 +652,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.backgroundLight,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Удалить аккаунт?'),
-        content: const Text(
-          'Это действие необратимо. Все ваши данные будут удалены.',
-        ),
+        title: Text(context.l10n.profileDeleteConfirmTitle),
+        content: Text(context.l10n.profileDeleteConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена'),
+            child: Text(context.l10n.commonCancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -630,7 +669,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Удалить'),
+            child: Text(context.l10n.commonDelete),
           ),
         ],
       ),

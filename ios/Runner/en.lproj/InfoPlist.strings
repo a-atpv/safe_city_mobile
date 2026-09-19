@@ -1,0 +1,6 @@
+/* System permission prompts. Keys come from Info.plist. */
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "We need your location to send security to you";
+"NSLocationWhenInUseUsageDescription" = "We need your location to send security to you";
+"NSPhotoLibraryUsageDescription" = "Gallery access is needed to set your profile photo";
+"NSCameraUsageDescription" = "Camera access is needed to take your profile photo";
+"NSUserTrackingUsageDescription" = "The identifier is only used to understand which ads bring users to the app. It has nothing to do with security calls: your location is shared with no one but the security service.";

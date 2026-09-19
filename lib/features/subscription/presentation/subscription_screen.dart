@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/l10n.dart';
 import '../../../shared/models/subscription.dart';
 import '../../../shared/providers/payment_provider.dart';
 import '../../../shared/providers/user_provider.dart';
@@ -30,39 +31,39 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
 
   String _fmt(DateTime? d) => d == null ? '—' : DateFormat('dd.MM.yyyy').format(d);
 
-  String _planName(String planType) =>
-      planType == 'yearly' ? 'Годовая' : 'Месячная';
+  String _planTitle(String planType) => planType == 'yearly'
+      ? context.l10n.subscriptionPlanYearly
+      : context.l10n.subscriptionPlanMonthly;
 
   Future<void> _confirmCancel(Subscription sub) async {
+    final l10n = context.l10n;
     final until = _fmt(sub.expiresAt);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.backgroundCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Отменить подписку?',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          l10n.subscriptionCancelTitle,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         content: Text(
-          'Автоматические списания прекратятся. Доступ к функциям сохранится '
-          'до $until, деньги за оставшийся период не списываются и не '
-          'возвращаются. Возобновить подписку можно в любой момент.',
+          l10n.subscriptionCancelBody(until),
           style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(
-              'Не отменять',
-              style: TextStyle(color: AppColors.textSecondary),
+            child: Text(
+              l10n.subscriptionKeep,
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Отменить подписку',
-              style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600),
+            child: Text(
+              l10n.subscriptionCancel,
+              style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -76,10 +77,10 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       await ref.read(userProvider.notifier).fetchUser();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Автопродление отключено')),
+        SnackBar(content: Text(l10n.subscriptionAutoRenewTurnedOff)),
       );
     } else {
-      final err = ref.read(paymentProvider).error ?? 'Не удалось отменить подписку';
+      final err = ref.read(paymentProvider).error ?? l10n.subscriptionCancelFailed;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(err)));
     }
@@ -93,7 +94,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Управление подпиской'),
+        title: Text(context.l10n.subscriptionManageTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -109,6 +110,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   }
 
   Widget _inactive(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -116,44 +118,39 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         const Icon(Icons.workspace_premium_outlined,
             color: AppColors.textHint, size: 56),
         const SizedBox(height: 16),
-        const Text(
-          'Подписка неактивна',
+        Text(
+          l10n.subscriptionInactiveTitle,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Оформите подписку, чтобы пользоваться кнопкой SOS и связью с '
-          'диспетчером.',
+        Text(
+          l10n.subscriptionInactiveBody,
           textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         const SizedBox(height: 24),
-        _primaryButton('Оформить', () => context.push('/subscribe')),
+        _primaryButton(l10n.homeSubscribe, () => context.push('/subscribe')),
       ],
     );
   }
 
   Widget _active(BuildContext context, Subscription sub, bool cancelling) {
+    final l10n = context.l10n;
     final cancelled = sub.isCancelled;
     final autoRenewOn = sub.autoRenew && !cancelled;
 
     final String note;
     if (cancelled) {
-      note = 'Автопродление отключено. Подписка действует до '
-          '${_fmt(sub.expiresAt)}, после чего доступ прекратится. '
-          'Списаний больше не будет.';
+      note = l10n.subscriptionNoteCancelled(_fmt(sub.expiresAt));
     } else if (autoRenewOn) {
-      note = 'Подписка продлевается автоматически. Вы можете отключить '
-          'автопродление в любой момент — доступ сохранится до конца '
-          'оплаченного периода.';
+      note = l10n.subscriptionNoteAutoRenew;
     } else {
-      note = 'Подписка действует до ${_fmt(sub.expiresAt)}. '
-          'Автопродление не подключено.';
+      note = l10n.subscriptionNoteNoAutoRenew(_fmt(sub.expiresAt));
     }
 
     return Column(
@@ -171,15 +168,17 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             children: [
               Row(
                 children: [
-                  Text(
-                    '${_planName(sub.planType)} подписка',
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: Text(
+                      _planTitle(sub.planType),
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -187,9 +186,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                       color: AppColors.success.withAlpha(51),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      'Активна',
-                      style: TextStyle(
+                    child: Text(
+                      l10n.profileSubscriptionActive,
+                      style: const TextStyle(
                         color: AppColors.success,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -200,12 +199,15 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
               ),
               const SizedBox(height: 14),
               _row(Icons.event_available_outlined,
-                  cancelled ? 'Доступ до' : 'Активна до', _fmt(sub.expiresAt)),
+                  cancelled
+                      ? l10n.subscriptionAccessUntil
+                      : l10n.subscriptionActiveUntilLabel,
+                  _fmt(sub.expiresAt)),
               const SizedBox(height: 10),
               _row(
                 autoRenewOn ? Icons.autorenew : Icons.autorenew_outlined,
-                'Автопродление',
-                autoRenewOn ? 'Включено' : 'Отключено',
+                l10n.subscriptionAutoRenew,
+                autoRenewOn ? l10n.subscriptionOn : l10n.subscriptionOff,
                 valueColor: autoRenewOn ? AppColors.success : AppColors.textHint,
               ),
             ],
@@ -218,7 +220,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         ),
         const SizedBox(height: 24),
         if (cancelled)
-          _primaryButton('Возобновить подписку', () => context.push('/subscribe'))
+          _primaryButton(l10n.subscriptionResume, () => context.push('/subscribe'))
         else
           SizedBox(
             width: double.infinity,
@@ -240,9 +242,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                         color: AppColors.error,
                       ),
                     )
-                  : const Text(
-                      'Отменить подписку',
-                      style: TextStyle(
+                  : Text(
+                      l10n.subscriptionCancel,
+                      style: const TextStyle(
                         color: AppColors.error,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -259,9 +261,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       children: [
         Icon(icon, color: AppColors.textSecondary, size: 18),
         const SizedBox(width: 10),
-        Text(label,
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
-        const Spacer(),
+        Expanded(
+          child: Text(label,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+        ),
+        const SizedBox(width: 8),
         Text(
           value,
           style: TextStyle(

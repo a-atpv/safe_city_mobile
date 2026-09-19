@@ -11,6 +11,8 @@ import 'core/env/backend_env.dart';
 import 'core/theme/theme.dart';
 import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
+import 'l10n/l10n.dart';
+import 'shared/providers/language_provider.dart';
 import 'shared/providers/websocket_provider.dart';
 import 'shared/providers/emergency_provider.dart';
 import 'shared/providers/location_tracking_provider.dart';
@@ -23,6 +25,10 @@ void main() async {
   // сетевой вызов.
   await BackendEnv.load();
   debugPrint('Backend: ${BackendEnv.host}');
+
+  // Язык — до первого кадра, иначе экран успеет мигнуть русским. И до пушей:
+  // тексты локальных уведомлений берутся отсюда же.
+  await AppLanguageStore.load();
 
   try {
     await Firebase.initializeApp().timeout(const Duration(seconds: 10));
@@ -164,6 +170,9 @@ class _SafeCityAppState extends ConsumerState<SafeCityApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       routerConfig: router,
+      locale: ref.watch(appLanguageProvider).locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       builder: (context, child) => GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         child: child,
@@ -182,6 +191,7 @@ void _handleGlobalCallStatusUpdate(
   if (context == null) return;
 
   final emergencyNotifier = ref.read(emergencyProvider.notifier);
+  final l10n = context.l10n;
 
   if (status == 'completed') {
     showDialog(
@@ -190,16 +200,21 @@ void _handleGlobalCallStatusUpdate(
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.check_circle_outline, color: Colors.green, size: 28),
-            SizedBox(width: 8),
-            Text('Успешно', style: TextStyle(color: Colors.white)),
+            const Icon(Icons.check_circle_outline, color: Colors.green, size: 28),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                l10n.callCompletedTitle,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
           ],
         ),
-        content: const Text(
-          'Вызов успешно завершен! Пожалуйста, оцените работу службы безопасности.',
-          style: TextStyle(color: Colors.white70),
+        content: Text(
+          l10n.callCompletedBody,
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           ElevatedButton(
@@ -212,7 +227,7 @@ void _handleGlobalCallStatusUpdate(
               backgroundColor: const Color(0xFF2563EB),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Оценить', style: TextStyle(color: Colors.white)),
+            child: Text(l10n.callRate, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -220,8 +235,8 @@ void _handleGlobalCallStatusUpdate(
   } else if (status == 'cancelled_by_user' || status == 'cancelled_by_system') {
     emergencyNotifier.clearActiveCall();
     final text = status == 'cancelled_by_system'
-        ? 'Ваш вызов был отменен системой.'
-        : 'Вызов отменен.';
+        ? l10n.callCancelledBySystem
+        : l10n.callCancelledByUser;
 
     showDialog(
       context: context,
@@ -229,11 +244,16 @@ void _handleGlobalCallStatusUpdate(
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.info_outline, color: Colors.redAccent, size: 28),
-            SizedBox(width: 8),
-            Text('Вызов отменен', style: TextStyle(color: Colors.white)),
+            const Icon(Icons.info_outline, color: Colors.redAccent, size: 28),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                l10n.callCancelledTitle,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
           ],
         ),
         content: Text(
@@ -246,7 +266,7 @@ void _handleGlobalCallStatusUpdate(
               Navigator.pop(ctx);
               context.go('/home');
             },
-            child: const Text('ОК'),
+            child: Text(l10n.commonOk),
           ),
         ],
       ),
@@ -273,9 +293,11 @@ void _handleGlobalCallRedirected(
   // Keep local call state fresh (status is now searching/offer_sent again).
   ref.read(emergencyProvider.notifier).getActiveCall();
 
+  final l10n = context.l10n;
   final note = (message['note'] as String?)?.trim();
-  final baseMessage = (message['message'] as String?) ??
-      'Ваш вызов передан другой службе. Ищем ближайшего свободного сотрудника.';
+  // Текст свой, а не message из события: он на языке интерфейса, а
+  // комментарий службы (note) показываем ниже отдельно.
+  final baseMessage = l10n.callRedirectedBody;
 
   showDialog(
     context: context,
@@ -283,13 +305,13 @@ void _handleGlobalCallRedirected(
     builder: (ctx) => AlertDialog(
       backgroundColor: const Color(0xFF1E293B),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Row(
+      title: Row(
         children: [
-          Icon(Icons.alt_route, color: Color(0xFF2563EB), size: 28),
-          SizedBox(width: 8),
+          const Icon(Icons.alt_route, color: Color(0xFF2563EB), size: 28),
+          const SizedBox(width: 8),
           Expanded(
-            child: Text('Вызов перенаправлен',
-                style: TextStyle(color: Colors.white)),
+            child: Text(l10n.callRedirectedTitle,
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -300,7 +322,7 @@ void _handleGlobalCallRedirected(
           Text(baseMessage, style: const TextStyle(color: Colors.white70)),
           if (note != null && note.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text('Комментарий службы:',
+            Text(l10n.callRedirectedNote,
                 style: TextStyle(
                     color: Colors.white.withAlpha(140), fontSize: 12)),
             const SizedBox(height: 4),
@@ -320,7 +342,7 @@ void _handleGlobalCallRedirected(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
-          child: const Text('Понятно', style: TextStyle(color: Colors.white)),
+          child: Text(l10n.commonGotIt, style: const TextStyle(color: Colors.white)),
         ),
       ],
     ),

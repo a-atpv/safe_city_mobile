@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/analytics/app_analytics.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/l10n.dart';
 import '../../../shared/providers/payment_provider.dart';
 import '../../../shared/providers/user_provider.dart';
 
@@ -118,9 +119,9 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
         actions: [
           TextButton(
             onPressed: () => context.go('/home'),
-            child: const Text(
-              'Закрыть',
-              style: TextStyle(color: AppColors.textSecondary),
+            child: Text(
+              context.l10n.commonClose,
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
           ),
         ],
@@ -139,25 +140,27 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
   }
 
   Widget _buildWaiting() {
-    return const Column(
+    final l10n = context.l10n;
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        CircularProgressIndicator(
+        const CircularProgressIndicator(
           valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
         ),
-        SizedBox(height: 24),
+        const SizedBox(height: 24),
         Text(
-          'Подтверждаем оплату…',
-          style: TextStyle(
+          l10n.paymentConfirming,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Text(
-          'Это может занять несколько секунд.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          l10n.paymentMayTakeSeconds,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
           textAlign: TextAlign.center,
         ),
       ],
@@ -165,18 +168,20 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
   }
 
   Widget _buildSuccess() {
+    final l10n = context.l10n;
     final expiresAt = ref.read(userProvider).user?.subscription?.expiresAt;
     final until = expiresAt != null
-        ? 'Активна до ${DateFormat('dd.MM.yyyy').format(expiresAt)}'
-        : 'Подписка активна';
+        ? l10n.paymentActiveUntil(DateFormat('dd.MM.yyyy').format(expiresAt))
+        : l10n.paymentSubscriptionActive;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         const Icon(Icons.check_circle, color: AppColors.success, size: 72),
         const SizedBox(height: 20),
-        const Text(
-          'Подписка оформлена',
-          style: TextStyle(
+        Text(
+          l10n.paymentSubscribed,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -200,9 +205,9 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: const Text(
-              'Готово',
-              style: TextStyle(
+            child: Text(
+              l10n.paymentDone,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -215,14 +220,15 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
   }
 
   Widget _buildPending() {
+    final l10n = context.l10n;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         const Icon(Icons.hourglass_bottom, color: AppColors.warning, size: 64),
         const SizedBox(height: 20),
-        const Text(
-          'Оплата ещё обрабатывается',
-          style: TextStyle(
+        Text(
+          l10n.paymentStillProcessing,
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -230,10 +236,9 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Если вы завершили оплату, подписка активируется в течение пары минут. '
-          'Можно проверить снова или вернуться позже.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        Text(
+          l10n.paymentStillProcessingBody,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 28),
@@ -248,9 +253,9 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: const Text(
-              'Проверить снова',
-              style: TextStyle(
+            child: Text(
+              l10n.paymentCheckAgain,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -261,9 +266,9 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
         const SizedBox(height: 8),
         TextButton(
           onPressed: () => context.go('/home'),
-          child: const Text(
-            'Вернуться на главную',
-            style: TextStyle(color: AppColors.textSecondary),
+          child: Text(
+            l10n.paymentBackHome,
+            style: const TextStyle(color: AppColors.textSecondary),
           ),
         ),
       ],

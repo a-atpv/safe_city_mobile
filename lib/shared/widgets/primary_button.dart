@@ -38,7 +38,16 @@ class PrimaryButton extends StatelessWidget {
                 Icon(icon, size: 20),
                 const SizedBox(width: 8),
               ],
-              Text(text),
+              // Подпись переносится на вторую строку, а не вылезает за
+              // кнопку: казахские подписи заметно длиннее русских.
+              Flexible(
+                child: Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           );
     

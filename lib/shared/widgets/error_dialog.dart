@@ -1,22 +1,24 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../l10n/l10n.dart';
 
 class ErrorDialog extends StatelessWidget {
-  final String title;
+  /// Null — «Ошибка» на языке интерфейса.
+  final String? title;
   final String description;
   final VoidCallback? onConfirm;
 
   const ErrorDialog({
     super.key,
-    this.title = 'Ошибка',
+    this.title,
     required this.description,
     this.onConfirm,
   });
 
   static Future<void> show(
     BuildContext context, {
-    String title = 'Ошибка',
+    String? title,
     required String description,
     VoidCallback? onConfirm,
   }) {
@@ -69,7 +71,7 @@ class ErrorDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      title,
+                      title ?? context.l10n.commonError,
                       style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 22,
@@ -107,7 +109,7 @@ class ErrorDialog extends StatelessWidget {
                           ),
                           elevation: 0,
                         ),
-                        child: const Text('Понятно'),
+                        child: Text(context.l10n.commonGotIt),
                       ),
                     ),
                   ],

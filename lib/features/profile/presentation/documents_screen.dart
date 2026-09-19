@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/l10n.dart';
 
 class DocumentsScreen extends StatelessWidget {
   final String title;
@@ -119,7 +120,7 @@ class _DocumentWebViewState extends State<DocumentWebView> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Загрузка... $_loadingProgress%',
+                    context.l10n.documentsLoading(_loadingProgress),
                     style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 14,
@@ -144,9 +145,9 @@ class _DocumentWebViewState extends State<DocumentWebView> {
                       size: 64,
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'Не удалось загрузить страницу',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.documentsLoadFailed,
+                      style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -154,9 +155,9 @@ class _DocumentWebViewState extends State<DocumentWebView> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Пожалуйста, проверьте интернет-соединение и попробуйте снова.',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.documentsCheckConnection,
+                      style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 14,
                       ),
@@ -166,7 +167,7 @@ class _DocumentWebViewState extends State<DocumentWebView> {
                     ElevatedButton.icon(
                       onPressed: _retry,
                       icon: const Icon(Icons.refresh, color: Colors.white),
-                      label: const Text('Повторить', style: TextStyle(color: Colors.white)),
+                      label: Text(context.l10n.commonRetry, style: const TextStyle(color: Colors.white)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),

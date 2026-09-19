@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/l10n.dart';
 import '../../../shared/providers/emergency_provider.dart';
 
 class CallChatScreen extends ConsumerStatefulWidget {
@@ -81,6 +82,7 @@ class _CallChatScreenState extends ConsumerState<CallChatScreen> {
   }
 
   Future<void> _cancelCall() async {
+    final l10n = context.l10n;
     final secretPhraseController = TextEditingController();
     bool obscure = true;
 
@@ -90,19 +92,19 @@ class _CallChatScreenState extends ConsumerState<CallChatScreen> {
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppColors.backgroundLight,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Отменить вызов?'),
+          title: Text(l10n.sosCancelTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Введите секретный код для подтверждения отмены вызова охраны.'),
+              Text(l10n.sosCancelBody),
               const SizedBox(height: 16),
               TextField(
                 controller: secretPhraseController,
                 obscureText: obscure,
                 decoration: InputDecoration(
-                  labelText: 'Секретный код',
-                  hintText: 'Ваше секретное слово',
+                  labelText: l10n.profileSecretLabel,
+                  hintText: l10n.sosSecretHint,
                   suffixIcon: IconButton(
                     icon: Icon(
                       obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
@@ -117,12 +119,12 @@ class _CallChatScreenState extends ConsumerState<CallChatScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Нет'),
+              child: Text(l10n.commonNo),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-              child: const Text('Да, отменить'),
+              child: Text(l10n.sosCancelConfirm),
             ),
           ],
         ),
@@ -150,14 +152,14 @@ class _CallChatScreenState extends ConsumerState<CallChatScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Чат с экипажем'),
+        title: Text(context.l10n.chatTitle),
         backgroundColor: AppColors.backgroundLight,
         elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
             onPressed: _cancelCall,
-            tooltip: 'Отменить вызов',
+            tooltip: context.l10n.sosCancelCall,
           ),
         ],
       ),
@@ -216,7 +218,7 @@ class _CallChatScreenState extends ConsumerState<CallChatScreen> {
                     child: TextField(
                       controller: _messageController,
                       decoration: InputDecoration(
-                        hintText: 'Введите сообщение...',
+                        hintText: context.l10n.chatMessageHint,
                         filled: true,
                         fillColor: AppColors.backgroundCard,
                         border: OutlineInputBorder(

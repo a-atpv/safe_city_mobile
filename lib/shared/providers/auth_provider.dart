@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../core/analytics/app_analytics.dart';
 import '../../core/api/api.dart';
 import '../../core/services/push_notification_service.dart';
+import '../../l10n/l10n.dart';
 import 'emergency_provider.dart';
 import 'user_provider.dart';
 
@@ -100,7 +101,7 @@ class AuthNotifier extends Notifier<AuthState> {
         state = state.copyWith(isLoading: false, email: email);
         return true;
       }
-      state = state.copyWith(isLoading: false, error: 'Не удалось отправить код');
+      state = state.copyWith(isLoading: false, error: currentL10n.authSendCodeFailed);
       return false;
     } on ApiException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);
@@ -146,7 +147,7 @@ class AuthNotifier extends Notifier<AuthState> {
         );
         return true;
       }
-      state = state.copyWith(isLoading: false, error: 'Неверный код');
+      state = state.copyWith(isLoading: false, error: currentL10n.authWrongCode);
       return false;
     } on ApiException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);

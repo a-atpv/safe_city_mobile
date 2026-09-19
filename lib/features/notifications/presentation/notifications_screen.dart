@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/l10n.dart';
 import '../../../shared/providers/notification_provider.dart';
 import '../../../shared/models/notification_item.dart';
 
@@ -42,8 +43,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   String _formatDate(DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inMinutes < 60) return '${diff.inMinutes} мин. назад';
-    if (diff.inHours < 24) return '${diff.inHours} ч. назад';
+    if (diff.inMinutes < 60) return context.l10n.notificationsMinutesAgo(diff.inMinutes);
+    if (diff.inHours < 24) return context.l10n.notificationsHoursAgo(diff.inHours);
     return '${dt.day}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
   }
 
@@ -58,7 +59,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         elevation: 0,
         title: Row(
           children: [
-            const Text('Уведомления', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Flexible(
+              child: Text(
+                context.l10n.notificationsTitle,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
             if (state.unreadCount > 0) ...[
               const SizedBox(width: 8),
               Container(
@@ -79,7 +86,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           if (state.unreadCount > 0)
             TextButton(
               onPressed: _markAllRead,
-              child: const Text('Прочитать все', style: TextStyle(color: AppColors.info, fontSize: 13)),
+              child: Text(context.l10n.notificationsMarkAllRead, style: const TextStyle(color: AppColors.info, fontSize: 13)),
             ),
         ],
       ),
@@ -90,14 +97,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               color: AppColors.primary,
               child: state.notifications.isEmpty
                   ? ListView(
-                      children: const [
-                        SizedBox(height: 120),
+                      children: [
+                        const SizedBox(height: 120),
                         Center(
                           child: Column(
                             children: [
-                              Icon(Icons.notifications_none, size: 64, color: AppColors.textHint),
-                              SizedBox(height: 16),
-                              Text('Нет уведомлений', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+                              const Icon(Icons.notifications_none, size: 64, color: AppColors.textHint),
+                              const SizedBox(height: 16),
+                              Text(context.l10n.notificationsEmpty, style: const TextStyle(color: AppColors.textSecondary, fontSize: 16)),
                             ],
                           ),
                         ),

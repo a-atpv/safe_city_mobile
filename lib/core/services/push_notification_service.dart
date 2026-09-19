@@ -9,6 +9,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../router/app_router.dart';
+import '../../l10n/l10n.dart';
 import '../../shared/providers/emergency_provider.dart';
 
 /// Top-level function to handle background messages.
@@ -88,10 +89,13 @@ class PushNotificationService {
 
     // 3. Create Android Notification Channel
     if (Platform.isAndroid) {
-      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      // Название канала Android показывает в настройках уведомлений — на языке
+      // приложения. Повторное создание канала с тем же id только переименует
+      // его, настройки человека (звук, важность) не сбрасываются.
+      final AndroidNotificationChannel channel = AndroidNotificationChannel(
         'emergency_status_channel', // id
-        'Emergency Status Updates', // title
-        description: 'This channel is used for updates on your emergency requests.',
+        currentL10n.pushChannelName,
+        description: currentL10n.pushChannelDescription,
         importance: Importance.max,
         playSound: true,
         enableVibration: true,
@@ -166,8 +170,8 @@ class PushNotificationService {
         NotificationDetails(
           android: AndroidNotificationDetails(
             'emergency_status_channel',
-            'Emergency Status Updates',
-            channelDescription: 'This channel is used for updates on your emergency requests.',
+            currentL10n.pushChannelName,
+            channelDescription: currentL10n.pushChannelDescription,
             icon: android.smallIcon,
             importance: Importance.max,
             priority: Priority.high,
@@ -196,6 +200,7 @@ class PushNotificationService {
     final status = data['status']?.toString();
 
     if (callId != null) {
+      final l10n = context.l10n;
       final container = ProviderScope.containerOf(context);
       final emergencyNotifier = container.read(emergencyProvider.notifier);
 
@@ -208,16 +213,21 @@ class PushNotificationService {
           builder: (ctx) => AlertDialog(
             backgroundColor: const Color(0xFF1E293B),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.check_circle_outline, color: Colors.green, size: 28),
-                SizedBox(width: 8),
-                Text('Успешно', style: TextStyle(color: Colors.white)),
+                const Icon(Icons.check_circle_outline, color: Colors.green, size: 28),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.callCompletedTitle,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
               ],
             ),
-            content: const Text(
-              'Вызов успешно завершен! Пожалуйста, оцените работу службы безопасности.',
-              style: TextStyle(color: Colors.white70),
+            content: Text(
+              l10n.callCompletedBody,
+              style: const TextStyle(color: Colors.white70),
             ),
             actions: [
               ElevatedButton(
@@ -229,7 +239,7 @@ class PushNotificationService {
                   backgroundColor: const Color(0xFF2563EB),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Оценить', style: TextStyle(color: Colors.white)),
+                child: Text(l10n.callRate, style: const TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -237,8 +247,8 @@ class PushNotificationService {
       } else if (status == 'cancelled_by_user' || status == 'cancelled_by_system') {
         emergencyNotifier.clearActiveCall();
         final text = status == 'cancelled_by_system'
-            ? 'Ваш вызов был отменен системой.'
-            : 'Вызов отменен.';
+            ? l10n.callCancelledBySystem
+            : l10n.callCancelledByUser;
 
         showDialog(
           context: context,
@@ -246,11 +256,16 @@ class PushNotificationService {
           builder: (ctx) => AlertDialog(
             backgroundColor: const Color(0xFF1E293B),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.redAccent, size: 28),
-                SizedBox(width: 8),
-                Text('Вызов отменен', style: TextStyle(color: Colors.white)),
+                const Icon(Icons.info_outline, color: Colors.redAccent, size: 28),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.callCancelledTitle,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
               ],
             ),
             content: Text(
@@ -263,7 +278,7 @@ class PushNotificationService {
                   Navigator.pop(ctx);
                   GoRouter.of(context).go('/home');
                 },
-                child: const Text('ОК'),
+                child: Text(l10n.commonOk),
               ),
             ],
           ),

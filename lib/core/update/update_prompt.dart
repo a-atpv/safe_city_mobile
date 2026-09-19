@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/l10n.dart';
+
 import '../constants/app_constants.dart';
 
 /// Сообщает, что в сторе появилась новая версия.
@@ -44,6 +46,8 @@ class UpdatePrompt {
         options: Options(
           sendTimeout: const Duration(seconds: 8),
           receiveTimeout: const Duration(seconds: 8),
+          // Текст обновления сервер пишет на языке из этого заголовка.
+          headers: {'Accept-Language': AppLanguageStore.current.code},
         ),
       );
 
@@ -74,9 +78,11 @@ class UpdatePrompt {
     required bool isRequired,
     String? message,
   }) {
+    final l10n = context.l10n;
+    // message сервер пишет на языке из Accept-Language, то есть на нашем.
     final text = message?.isNotEmpty == true
         ? message!
-        : 'Вышла новая версия приложения.';
+        : l10n.updateNewVersion;
 
     return showDialog<void>(
       context: context,
@@ -91,14 +97,18 @@ class UpdatePrompt {
             children: [
               const Icon(Icons.system_update, color: Color(0xFF2563EB), size: 28),
               const SizedBox(width: 8),
-              Text(
-                isRequired ? 'Нужно обновиться' : 'Вышло обновление',
-                style: const TextStyle(color: Colors.white),
+              Expanded(
+                child: Text(
+                  isRequired ? l10n.updateRequiredTitle : l10n.updateAvailableTitle,
+                  style: const TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),
           content: Text(
-            latestVersion.isEmpty ? text : '$text\n\nВерсия $latestVersion.',
+            latestVersion.isEmpty
+                ? text
+                : '$text\n\n${l10n.updateVersion(latestVersion)}',
             style: const TextStyle(color: Colors.white70),
           ),
           actions: [
@@ -107,9 +117,9 @@ class UpdatePrompt {
                 onPressed: () {
                   Navigator.pop(ctx);
                 },
-                child: const Text(
-                  'Позже',
-                  style: TextStyle(color: Colors.white70),
+                child: Text(
+                  l10n.permLater,
+                  style: const TextStyle(color: Colors.white70),
                 ),
               ),
             ElevatedButton(
@@ -124,7 +134,7 @@ class UpdatePrompt {
                 shape:
                     RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Обновить', style: TextStyle(color: Colors.white)),
+              child: Text(l10n.updateAction, style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),

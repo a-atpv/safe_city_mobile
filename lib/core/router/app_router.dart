@@ -19,6 +19,7 @@ import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
 import '../../shared/providers/auth_provider.dart';
 import '../../shared/providers/user_provider.dart';
+import '../../l10n/l10n.dart';
 
 import 'package:flutter/material.dart';
 
@@ -145,7 +146,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'documents',
                 builder: (context, state) {
                   final extra = state.extra as Map<String, String>?;
-                  final title = extra?['title'] ?? 'Политика конфиденциальности';
+                  final title = extra?['title'] ?? context.l10n.documentsPrivacyPolicy;
                   final url = extra?['url'] ?? 'https://www.safe-city.kz/legal/privacy-policy';
                   return DocumentsScreen(title: title, url: url);
                 },

@@ -1,0 +1,473 @@
+{
+  "@@locale": "ru",
+  "commonCancel": "Отмена",
+  "@commonCancel": {
+    "description": "Кнопка отмены в диалогах"
+  },
+  "commonOk": "ОК",
+  "commonGotIt": "Понятно",
+  "commonClose": "Закрыть",
+  "commonSave": "Сохранить",
+  "commonDelete": "Удалить",
+  "commonRetry": "Повторить",
+  "commonContinue": "Продолжить",
+  "commonBack": "Назад",
+  "commonError": "Ошибка",
+  "commonUser": "Пользователь",
+  "@commonUser": {
+    "description": "Подпись в профиле, пока имя не заполнено"
+  },
+  "languageTitle": "Язык",
+  "@languageTitle": {
+    "description": "Заголовок шторки выбора языка и пункт профиля"
+  },
+  "loginTagline": "Ваша безопасность — наш приоритет",
+  "loginEnterEmail": "Введите email",
+  "loginInvalidEmail": "Введите корректный email",
+  "loginGetCode": "Получить код",
+  "loginDocumentOpenFailed": "Не удалось открыть документ",
+  "loginConsent": "Продолжая, вы принимаете {offer}, {terms} и {privacy}",
+  "@loginConsent": {
+    "description": "Строка под формой входа. offer, terms, privacy — ссылки на документы (loginConsentOffer и соседние), порядок слов в каждом языке свой",
+    "placeholders": {
+      "offer": {
+        "type": "String"
+      },
+      "terms": {
+        "type": "String"
+      },
+      "privacy": {
+        "type": "String"
+      }
+    }
+  },
+  "loginConsentOffer": "публичную оферту",
+  "@loginConsentOffer": {
+    "description": "Ссылка в loginConsent, в нужном падеже"
+  },
+  "loginConsentTerms": "условия использования",
+  "@loginConsentTerms": {
+    "description": "Ссылка в loginConsent, в нужном падеже"
+  },
+  "loginConsentPrivacy": "политику конфиденциальности",
+  "@loginConsentPrivacy": {
+    "description": "Ссылка в loginConsent, в нужном падеже"
+  },
+  "otpTitle": "Введите код",
+  "otpSentTo": "Код отправлен на {target}",
+  "@otpSentTo": {
+    "placeholders": {
+      "target": {
+        "type": "String",
+        "example": "ab•••@mail.ru"
+      }
+    }
+  },
+  "otpResendIn": "Отправить повторно через {seconds} сек",
+  "@otpResendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "otpResend": "Отправить повторно",
+  "otpConfirm": "Подтвердить",
+  "profileTitle": "Профиль",
+  "profilePersonalData": "Личные данные",
+  "profileSubscription": "Подписка",
+  "profileSubscriptionActive": "Активна",
+  "@profileSubscriptionActive": {
+    "description": "Бейдж у пункта «Подписка»"
+  },
+  "profileDocuments": "Документы",
+  "profileSupport": "Поддержка",
+  "profileMailAppFailed": "Не удалось открыть почтовое приложение",
+  "profileAbout": "О приложении",
+  "profileLogout": "Выйти",
+  "profileDeleteAccount": "Удалить аккаунт",
+  "profileTakePhoto": "Сделать фото",
+  "profileChooseFromGallery": "Выбрать из галереи",
+  "profileDeletePhoto": "Удалить фото",
+  "profilePhotoDeleteFailed": "Не удалось удалить фото",
+  "profilePhotoUploadFailed": "Не удалось загрузить фото",
+  "profileImagePickFailed": "Не удалось выбрать изображение",
+  "profileEditTitle": "Редактировать профиль",
+  "profileNameLabel": "Имя",
+  "profileNameHint": "Введите ваше имя",
+  "profilePhoneLabel": "Телефон",
+  "profileSecretLabel": "Секретный код",
+  "@profileSecretLabel": {
+    "description": "Слово, которым человек подтверждает отмену вызова"
+  },
+  "profileSecretHint": "Слово для отмены вызова",
+  "profileSecretHelp": "Используется для подтверждения отмены вызова охраны",
+  "profileLogoutConfirm": "Выйти из аккаунта?",
+  "profileDeleteConfirmTitle": "Удалить аккаунт?",
+  "profileDeleteConfirmBody": "Это действие необратимо. Все ваши данные будут удалены.",
+  "documentsPublicOffer": "Публичная оферта",
+  "documentsPrivacyPolicy": "Политика конфиденциальности",
+  "documentsUserAgreement": "Пользовательское соглашение",
+  "documentsRussianOnly": "Документы доступны только на русском языке",
+  "@documentsRussianOnly": {
+    "description": "Пометка в списке документов; на русском интерфейсе не показывается"
+  },
+  "errorTimeout": "Превышено время ожидания. Проверьте интернет-соединение.",
+  "errorConnection": "Ошибка подключения. Проверьте интернет-соединение.",
+  "errorSessionExpired": "Сессия истекла. Пожалуйста, войдите снова.",
+  "errorForbidden": "У вас нет доступа к этому ресурсу.",
+  "errorTooManyRequests": "Слишком много запросов. Попробуйте позже.",
+  "errorServer": "Ошибка сервера: {code}",
+  "@errorServer": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "errorCancelled": "Запрос отменён",
+  "errorUnknown": "Произошла неизвестная ошибка",
+  "errorNetworkTitle": "Ошибка сети",
+  "errorGenericTitle": "Произошла ошибка",
+  "errorGenericBody": "Что-то пошло не так. Пожалуйста, попробуйте позже.",
+  "errorRequestFailed": "Произошла ошибка при запросе к серверу",
+  "callCompletedTitle": "Успешно",
+  "callCompletedBody": "Вызов успешно завершен! Пожалуйста, оцените работу службы безопасности.",
+  "callRate": "Оценить",
+  "callCancelledTitle": "Вызов отменен",
+  "callCancelledBySystem": "Ваш вызов был отменен системой.",
+  "callCancelledByUser": "Вызов отменен.",
+  "callRedirectedTitle": "Вызов перенаправлен",
+  "callRedirectedBody": "Ваш вызов передан другой службе. Ищем ближайшего свободного сотрудника.",
+  "callRedirectedNote": "Комментарий службы:",
+  "chatTitle": "Чат с экипажем",
+  "chatMessageHint": "Введите сообщение...",
+  "reviewCallCompleted": "Вызов завершён",
+  "reviewRateCrew": "Оцените работу экипажа",
+  "reviewCommentHint": "Комментарий (необязательно)",
+  "reviewSubmit": "Отправить отзыв",
+  "reviewSkip": "Пропустить",
+  "historyTitle": "История вызовов",
+  "historyLoadFailed": "Ошибка загрузки истории",
+  "historyFilterAll": "Все",
+  "historyFilterCompleted": "Завершённые",
+  "historyFilterCancelled": "Отменённые",
+  "historyEmpty": "История пуста",
+  "historyDurationMinutes": "{minutes} мин",
+  "@historyDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "historyStatusCompleted": "Завершён",
+  "historyStatusCancelled": "Отменён",
+  "historyStatusInProgress": "В процессе",
+  "notificationsTitle": "Уведомления",
+  "notificationsMarkAllRead": "Прочитать все",
+  "notificationsEmpty": "Нет уведомлений",
+  "notificationsMinutesAgo": "{minutes} мин. назад",
+  "@notificationsMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsHoursAgo": "{hours} ч. назад",
+  "@notificationsHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "commonNo": "Нет",
+  "sosCancelTitle": "Отменить вызов?",
+  "sosCancelBody": "Введите секретный код для подтверждения отмены вызова охраны.",
+  "sosSecretHint": "Ваше секретное слово",
+  "sosCancelConfirm": "Да, отменить",
+  "sosCreateFailed": "Не удалось создать вызов.",
+  "sosLocationServicesOff": "Службы геолокации отключены. Включите GPS в настройках устройства.",
+  "sosLocationDenied": "Доступ к геолокации запрещён. Разрешите доступ для вызова охраны.",
+  "sosLocationTimeout": "Не удалось определить местоположение за отведенное время. Проверьте GPS и повторите.",
+  "sosLocationFailedDetails": "Не удалось определить местоположение: {error}",
+  "@sosLocationFailedDetails": {
+    "description": "Только в отладочной сборке",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sosLocationFailed": "Не удалось определить местоположение. Проверьте настройки GPS.",
+  "sosOutsideAreaTitle": "Вы вне зоны обслуживания",
+  "sosCall102": "Позвонить 102",
+  "sosDialerFailed": "Не удалось открыть набор номера. Позвоните 102.",
+  "homeNoSubscriptionTitle": "Подписка не активна",
+  "homeNoSubscriptionBody": "Для использования функции экстренного вызова необходима активная подписка.",
+  "homeSubscribe": "Оформить",
+  "homeTapToCall": "Нажмите для вызова охраны",
+  "homeTapToSubscribe": "Подписка не активна — нажмите, чтобы оформить",
+  "homeSearchingSecurity": "Поиск\nохраны...",
+  "@homeSearchingSecurity": {
+    "description": "В круге радара, две строки"
+  },
+  "homeInProgress": "В работе",
+  "@homeInProgress": {
+    "description": "В круге радара, когда охранник принял вызов"
+  },
+  "homeServicesNotified": "Ближайшие службы\nоповещены",
+  "sosCancelCall": "Отменить вызов",
+  "homeSecurityAssigned": "Охрана назначена",
+  "homeReviews": "{count, plural, one{{count} отзыв} few{{count} отзыва} many{{count} отзывов} other{{count} отзыва}}",
+  "@homeReviews": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeCallDetails": "Детали вызова",
+  "homeSubscriptionInactive": "Не активна",
+  "@homeSubscriptionInactive": {
+    "description": "Бейдж подписки в шапке главного экрана"
+  },
+  "onboardingRemovePhoto": "Убрать фото",
+  "onboardingAddPhoto": "Добавьте фото профиля",
+  "onboardingWelcome": "Добро пожаловать!",
+  "onboardingFillProfile": "Заполните данные профиля,\nчтобы продолжить",
+  "onboardingFullName": "Полное имя",
+  "onboardingNameHint": "Ваше имя и фамилия",
+  "onboardingNameRequired": "Пожалуйста, введите ваше имя",
+  "onboardingPhone": "Номер телефона",
+  "onboardingOptional": "Необязательно",
+  "onboardingSecretLabel": "Секретное слово * (для отмены вызова)",
+  "onboardingSecretHint": "Секретное слово",
+  "onboardingSecretRequired": "Пожалуйста, введите секретное слово",
+  "settingsDeleteTitle": "Удаление аккаунта",
+  "settingsDeleteBody": "Вы действительно хотите удалить свой аккаунт? Это действие необратимо.",
+  "settingsPush": "Push-уведомления",
+  "settingsCallSound": "Звук звонка",
+  "settingsVibration": "Вибрация",
+  "settingsApp": "Приложение",
+  "settingsLanguage": "Язык приложения",
+  "settingsDarkTheme": "Тёмная тема",
+  "documentsLoading": "Загрузка... {progress}%",
+  "@documentsLoading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "documentsLoadFailed": "Не удалось загрузить страницу",
+  "documentsCheckConnection": "Пожалуйста, проверьте интернет-соединение и попробуйте снова.",
+  "updateNewVersion": "Вышла новая версия приложения.",
+  "updateRequiredTitle": "Нужно обновиться",
+  "updateAvailableTitle": "Вышло обновление",
+  "updateVersion": "Версия {version}.",
+  "@updateVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateAction": "Обновить",
+  "navHome": "Главная",
+  "navHistory": "История",
+  "authSendCodeFailed": "Не удалось отправить код",
+  "authWrongCode": "Неверный код",
+  "permLocationDeniedOpenSettings": "Доступ к геолокации запрещён. Откройте настройки приложения.",
+  "permLocationTitle": "Разрешение на геолокацию",
+  "permLocationDisclosure": "Safe City собирает данные о местоположении для работы функции экстренного вызова SOS, даже когда приложение закрыто или не используется. Эти данные необходимы для оперативного прибытия службы охраны по вашим координатам.",
+  "@permLocationDisclosure": {
+    "description": "Prominent Disclosure перед системным запросом геолокации — требование Google Play: должно упоминать сбор местоположения, работу в фоне и функцию, ради которой он нужен"
+  },
+  "permDecline": "Отклонить",
+  "permAccept": "Принять",
+  "permBackgroundTitle": "Фоновый режим SOS",
+  "permBackgroundBody": "Для надежной отправки сигнала SOS при свернутом или закрытом приложении, пожалуйста, выберите «Разрешить в любом режиме» (Allow all the time) в настройках разрешений.",
+  "permLater": "Позже",
+  "permOpenSettings": "В настройки",
+  "locationForegroundNotification": "Отправка координат охране в фоновом режиме",
+  "@locationForegroundNotification": {
+    "description": "Постоянное уведомление Android во время SOS"
+  },
+  "pushChannelName": "Статус вызова",
+  "@pushChannelName": {
+    "description": "Название канала уведомлений в настройках Android"
+  },
+  "pushChannelDescription": "Уведомления о ходе ваших вызовов охраны",
+  "sosStatusRedirecting": "Передаём другой службе...",
+  "sosStatusSearching": "Поиск охраны...",
+  "sosStatusWaiting": "Ожидание ответа...",
+  "sosStatusAccepted": "Вызов принят",
+  "sosStatusEnRoute": "Охрана в пути",
+  "sosStatusArrived": "Охрана прибыла",
+  "sosStatusCompleted": "Вызов завершён",
+  "sosStatusCancelled": "Отменён",
+  "sosStatusCancelledBySystem": "Отменён системой",
+  "sosCallActive": "Вызов активен",
+  "sosSettings": "Настройки",
+  "sosRedirectedHint": "Ваш вызов передан другой службе.\nИщем ближайшего свободного сотрудника.",
+  "sosServicesNotified": "Ближайшие службы оповещены",
+  "sosToHome": "На главную",
+  "paywallHeadline": "Полный доступ ко всем функциям",
+  "paywallSubhead": "Кнопка SOS, геолокация в реальном времени и связь с диспетчером 24/7.",
+  "paywallPaymentCreateFailed": "Не удалось создать платёж",
+  "paywallRecurringTerms": "Подписка продлевается автоматически: {amounts} — бессрочно, до отмены. Отключить автопродление можно в любой момент: Профиль → Подписка → «Отменить подписку», либо обратившись в службу поддержки. После отмены списаний больше не будет, доступ сохранится до конца оплаченного периода.",
+  "@paywallRecurringTerms": {
+    "description": "Условия автосписаний, которые Робокасса требует на форме оплаты. Путь «Профиль → Подписка → …» должен совпадать с подписями кнопок на этом языке",
+    "placeholders": {
+      "amounts": {
+        "type": "String",
+        "example": "800 ₸ каждый месяц или 6900 ₸ каждый год"
+      }
+    }
+  },
+  "paywallOneTimeTerms": "Оплата за выбранный период.",
+  "paywallChargeMonthly": "{price} ₸ каждый месяц",
+  "@paywallChargeMonthly": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "paywallChargeYearly": "{price} ₸ каждый год",
+  "@paywallChargeYearly": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "paywallChargeEither": "{first} или {second}",
+  "@paywallChargeEither": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
+  "paywallConsentRecurring": "Я даю согласие на регулярные (автоматические) списания, на {privacy} и принимаю условия {offer}, в которой подробно описаны правила рекуррентных платежей.",
+  "@paywallConsentRecurring": {
+    "description": "Согласие у кнопки оплаты. privacy и offer — ссылки (paywallConsentPrivacy, paywallConsentOffer)",
+    "placeholders": {
+      "privacy": {
+        "type": "String"
+      },
+      "offer": {
+        "type": "String"
+      }
+    }
+  },
+  "paywallConsent": "Я даю согласие на {privacy} и принимаю условия {offer}.",
+  "@paywallConsent": {
+    "description": "Согласие у кнопки оплаты без автосписаний",
+    "placeholders": {
+      "privacy": {
+        "type": "String"
+      },
+      "offer": {
+        "type": "String"
+      }
+    }
+  },
+  "paywallConsentPrivacy": "обработку персональных данных",
+  "@paywallConsentPrivacy": {
+    "description": "Ссылка в согласии, в нужном падеже"
+  },
+  "paywallConsentOffer": "публичной оферты",
+  "@paywallConsentOffer": {
+    "description": "Ссылка в согласии, в нужном падеже"
+  },
+  "paywallPlanYearly": "Годовая",
+  "paywallPlanMonthly": "Месячная",
+  "paywallBestValue": "выгодно",
+  "paywallPricePerYear": "{price} ₸ / год",
+  "@paywallPricePerYear": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "paywallPricePerMonth": "{price} ₸ / мес",
+  "@paywallPricePerMonth": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "paywallFeatureSos": "Кнопка SOS в одно касание",
+  "paywallFeatureLocation": "Геолокация в реальном времени",
+  "paywallFeatureDispatcher": "Связь с диспетчером 24/7",
+  "paywallFeaturePlatforms": "Приложение для iOS и Android",
+  "subscriptionManageTitle": "Управление подпиской",
+  "subscriptionPlanYearly": "Годовая подписка",
+  "subscriptionPlanMonthly": "Месячная подписка",
+  "subscriptionCancelTitle": "Отменить подписку?",
+  "subscriptionCancelBody": "Автоматические списания прекратятся. Доступ к функциям сохранится до {until}, деньги за оставшийся период не списываются и не возвращаются. Возобновить подписку можно в любой момент.",
+  "@subscriptionCancelBody": {
+    "placeholders": {
+      "until": {
+        "type": "String",
+        "example": "18.10.2026"
+      }
+    }
+  },
+  "subscriptionKeep": "Не отменять",
+  "subscriptionCancel": "Отменить подписку",
+  "subscriptionAutoRenewTurnedOff": "Автопродление отключено",
+  "subscriptionCancelFailed": "Не удалось отменить подписку",
+  "subscriptionInactiveTitle": "Подписка неактивна",
+  "subscriptionInactiveBody": "Оформите подписку, чтобы пользоваться кнопкой SOS и связью с диспетчером.",
+  "subscriptionNoteCancelled": "Автопродление отключено. Подписка действует до {date}, после чего доступ прекратится. Списаний больше не будет.",
+  "@subscriptionNoteCancelled": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionNoteAutoRenew": "Подписка продлевается автоматически. Вы можете отключить автопродление в любой момент — доступ сохранится до конца оплаченного периода.",
+  "subscriptionNoteNoAutoRenew": "Подписка действует до {date}. Автопродление не подключено.",
+  "@subscriptionNoteNoAutoRenew": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionAccessUntil": "Доступ до",
+  "subscriptionActiveUntilLabel": "Активна до",
+  "subscriptionAutoRenew": "Автопродление",
+  "subscriptionOn": "Включено",
+  "subscriptionOff": "Отключено",
+  "subscriptionResume": "Возобновить подписку",
+  "paymentConfirming": "Подтверждаем оплату…",
+  "paymentMayTakeSeconds": "Это может занять несколько секунд.",
+  "paymentActiveUntil": "Активна до {date}",
+  "@paymentActiveUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentSubscriptionActive": "Подписка активна",
+  "paymentSubscribed": "Подписка оформлена",
+  "paymentDone": "Готово",
+  "paymentStillProcessing": "Оплата ещё обрабатывается",
+  "paymentStillProcessingBody": "Если вы завершили оплату, подписка активируется в течение пары минут. Можно проверить снова или вернуться позже.",
+  "paymentCheckAgain": "Проверить снова",
+  "paymentBackHome": "Вернуться на главную"
+}

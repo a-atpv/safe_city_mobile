@@ -106,6 +106,27 @@ adb shell setprop debug.firebase.analytics.app com.safeCity.appname
 
 Выключить отладочный режим: `adb shell setprop debug.firebase.analytics.app .none.`
 
+### Языки
+
+Приложение говорит на казахском, русском и английском. Язык выбирают кнопкой
+в углу экрана входа или в профиле. Пока человек не выбрал сам, интерфейс
+русский, какой бы ни был язык телефона. Выбор хранится на телефоне
+(`lib/l10n/app_language.dart`), уходит с каждым запросом в `Accept-Language`
+и после входа — в `PATCH /user/settings`, чтобы сервер писал пуши и ошибки на
+нём же.
+
+Строки лежат в `lib/l10n/app_ru.arb` (исходный язык), `app_kk.arb` и
+`app_en.arb`. Новая строка добавляется во все три файла, в экране — через
+`context.l10n.имяСтроки`, в коде без `BuildContext` — через `currentL10n`.
+Dart-код из ARB генерирует `flutter pub get` (или `flutter gen-l10n`).
+`test/l10n_arb_test.dart` падает, если строку забыли перевести, а
+`test/l10n_screens_test.dart` — если текст на каком-то языке вылез за экран
+шириной 320 точек.
+
+Системные запросы iOS (геолокация, камера, галерея, трекинг) переведены в
+`ios/Runner/{kk,ru,en}.lproj/InfoPlist.strings`. iOS показывает их на языке
+телефона, а не на выбранном в приложении.
+
 ## TODO
 
 - [ ] Интеграция 2GIS карт

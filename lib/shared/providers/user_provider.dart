@@ -241,7 +241,13 @@ class UserNotifier extends Notifier<UserState> {
 
   Future<bool> updateSettings(UserSettings settings) async {
     try {
-      final response = await _apiClient.dio.patch('/user/settings', data: settings.toJson());
+      // Без language: язык хранит телефон и сообщает серверу сам
+      // (appLanguageProvider). Значение из этого объекта могло устареть, и
+      // тумблер уведомлений переписал бы им язык пушей.
+      final response = await _apiClient.dio.patch(
+        '/user/settings',
+        data: settings.toJson()..remove('language'),
+      );
       if (response.statusCode == 200) {
         state = state.copyWith(settings: settings);
         return true;

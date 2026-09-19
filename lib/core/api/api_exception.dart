@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
+import '../../l10n/l10n.dart';
+
 /// Коды ошибок, которые приложение показывает по-своему, а не общим текстом.
 ///
 /// Сервер присылает их в теле: `{"detail": {"code": …, "message": …}}`. Код
@@ -43,38 +45,46 @@ class ApiException implements Exception {
     final response = error.response;
     final statusCode = response?.statusCode;
     final bodyMessage = messageFromResponseData(response?.data);
+    final serverCode = codeFromResponseData(response?.data);
 
+    // Экрана здесь нет — язык берём из выбранного в приложении.
+    final l10n = currentL10n;
     String message;
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        message = 'Превышено время ожидания. Проверьте интернет-соединение.';
+        message = l10n.errorTimeout;
         break;
       case DioExceptionType.connectionError:
-        message = 'Ошибка подключения. Проверьте интернет-соединение.';
+        message = l10n.errorConnection;
         break;
       case DioExceptionType.badResponse:
-        if (statusCode == 401) {
-          message = 'Сессия истекла. Пожалуйста, войдите снова.';
+        // Ответ с машинным кодом сервер писал для человека: там и причина, и
+        // что делать дальше. Общий текст по статусу («нет доступа к ресурсу»,
+        // «слишком много запросов») такой ответ только обесценивает.
+        if (serverCode != null && bodyMessage != null && bodyMessage.isNotEmpty) {
+          message = bodyMessage;
+        } else if (statusCode == 401) {
+          message = l10n.errorSessionExpired;
         } else if (statusCode == 403) {
-          message = 'У вас нет доступа к этому ресурсу.';
+          message = l10n.errorForbidden;
         } else if (statusCode == 429) {
-          message = 'Слишком много запросов. Попробуйте позже.';
+          message = l10n.errorTooManyRequests;
         } else if (bodyMessage != null && bodyMessage.isNotEmpty) {
           message = bodyMessage;
         } else {
-          message = 'Ошибка сервера: $statusCode';
+          message = l10n.errorServer('$statusCode');
         }
         break;
       case DioExceptionType.cancel:
-        message = 'Запрос отменён';
+        message = l10n.errorCancelled;
         break;
       default:
         if (bodyMessage != null && bodyMessage.isNotEmpty) {
           message = bodyMessage;
         } else {
-          message = 'Произошла неизвестная ошибка';
+          message = l10n.errorUnknown;
         }
     }
 
@@ -82,7 +92,7 @@ class ApiException implements Exception {
       message: message,
       statusCode: statusCode,
       data: response?.data,
-      code: codeFromResponseData(response?.data),
+      code: serverCode,
     );
   }
 

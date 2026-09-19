@@ -1,7 +1,9 @@
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/l10n.dart';
 import '../../../core/api/api.dart';
 import '../../../shared/widgets/widgets.dart';
 
@@ -72,7 +74,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Ошибка загрузки истории';
+        _error = context.l10n.historyLoadFailed;
         _isLoading = false;
       });
     }
@@ -127,7 +129,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             Padding(
               padding: const EdgeInsets.all(20),
               child: Text(
-                'История вызовов',
+                context.l10n.historyTitle,
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
             ),
@@ -136,11 +138,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  _buildFilterChip('Все', 'all'),
+                  _buildFilterChip(context.l10n.historyFilterAll, 'all'),
                   const SizedBox(width: 8),
-                  _buildFilterChip('Завершённые', 'completed'),
+                  _buildFilterChip(context.l10n.historyFilterCompleted, 'completed'),
                   const SizedBox(width: 8),
-                  _buildFilterChip('Отменённые', 'cancelled'),
+                  _buildFilterChip(context.l10n.historyFilterCancelled, 'cancelled'),
                 ],
               ),
             ),
@@ -159,7 +161,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                               const SizedBox(height: 16),
                               ElevatedButton(
                                 onPressed: _fetchHistory,
-                                child: const Text('Повторить'),
+                                child: Text(context.l10n.commonRetry),
                               ),
                             ],
                           ),
@@ -176,7 +178,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
-                                    'История пуста',
+                                    context.l10n.historyEmpty,
                                     style: Theme.of(context).textTheme.bodyMedium,
                                   ),
                                 ],
@@ -283,7 +285,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           
           if (durationSeconds != null)
             Text(
-              '${(durationSeconds / 60).ceil()} мин',
+              context.l10n.historyDurationMinutes((durationSeconds / 60).ceil()),
               style: Theme.of(context).textTheme.bodyMedium,
             ),
         ],
@@ -292,9 +294,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
   
   String _statusLabel(String status) {
-    if (status == 'completed') return 'Завершён';
-    if (status.contains('cancelled')) return 'Отменён';
-    if (status == 'offer_sent') return 'В процессе';
+    final l10n = context.l10n;
+    if (status == 'completed') return l10n.historyStatusCompleted;
+    if (status.contains('cancelled')) return l10n.historyStatusCancelled;
+    if (status == 'offer_sent') return l10n.historyStatusInProgress;
     return status;
   }
 
@@ -310,12 +313,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     return Icons.timer_outlined;
   }
 
+  /// «18 сентября 2026 г., 14:05» / «2026 ж. 18 қыркүйек, 14:05» /
+  /// «September 18, 2026, 14:05» — порядок частей даты у каждого языка свой.
   String _formatDate(DateTime date) {
-    final months = [
-      'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
-    ];
-    final time = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    return '${date.day} ${months[date.month - 1]} ${date.year}, $time';
+    final locale = context.l10n.localeName;
+    return '${DateFormat.yMMMMd(locale).format(date)}, '
+        '${DateFormat.Hm(locale).format(date)}';
   }
 }

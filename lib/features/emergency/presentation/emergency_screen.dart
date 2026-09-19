@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/l10n.dart';
 import '../../../core/api/api.dart';
 import '../../../core/services/location_permission_service.dart';
 import '../../../shared/providers/providers.dart';
@@ -107,6 +108,8 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
   }
   
   Future<void> _createEmergencyCall() async {
+    // Строки берём до первого await: к концу запроса экран может уйти.
+    final l10n = context.l10n;
     setState(() {
       _error = null;
       _errorCode = null;
@@ -147,7 +150,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
       } else {
         final emergencyState = ref.read(emergencyProvider);
         setState(() {
-          _error = emergencyState.error ?? 'Не удалось создать вызов.';
+          _error = emergencyState.error ?? l10n.sosCreateFailed;
           _errorCode = emergencyState.errorCode;
           _isLoading = false;
         });
@@ -171,23 +174,23 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
       });
     } on LocationServiceDisabledException catch (_) {
       setState(() {
-        _error = 'Службы геолокации отключены. Включите GPS в настройках устройства.';
+        _error = l10n.sosLocationServicesOff;
         _isLoading = false;
       });
     } on PermissionDeniedException catch (_) {
       setState(() {
-        _error = 'Доступ к геолокации запрещён. Разрешите доступ для вызова охраны.';
+        _error = l10n.sosLocationDenied;
         _isLoading = false;
       });
     } on TimeoutException catch (_) {
       setState(() {
-        _error = 'Не удалось определить местоположение за отведенное время. Проверьте GPS и повторите.';
+        _error = l10n.sosLocationTimeout;
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
         // Keep the user-friendly message, but provide details in debug builds.
-        _error = kDebugMode ? 'Не удалось определить местоположение: $e' : 'Не удалось определить местоположение. Проверьте настройки GPS.';
+        _error = kDebugMode ? l10n.sosLocationFailedDetails('$e') : l10n.sosLocationFailed;
         _isLoading = false;
       });
     }
@@ -241,7 +244,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось открыть набор номера. Позвоните 102.')),
+        SnackBar(content: Text(context.l10n.sosDialerFailed)),
       );
     }
   }
@@ -267,6 +270,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
       return;
     }
     
+    final l10n = context.l10n;
     final secretPhraseController = TextEditingController();
     bool obscure = true;
 
@@ -276,19 +280,19 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppColors.backgroundLight,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Отменить вызов?'),
+          title: Text(l10n.sosCancelTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Введите секретный код для подтверждения отмены вызова охраны.'),
+              Text(l10n.sosCancelBody),
               const SizedBox(height: 16),
               TextField(
                 controller: secretPhraseController,
                 obscureText: obscure,
                 decoration: InputDecoration(
-                  labelText: 'Секретный код',
-                  hintText: 'Ваше секретное слово',
+                  labelText: l10n.profileSecretLabel,
+                  hintText: l10n.sosSecretHint,
                   suffixIcon: IconButton(
                     icon: Icon(
                       obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
@@ -303,12 +307,12 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Нет'),
+              child: Text(l10n.commonNo),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-              child: const Text('Да, отменить'),
+              child: Text(l10n.sosCancelConfirm),
             ),
           ],
         ),
@@ -329,24 +333,25 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
   }
   
   String get _statusText {
+    final l10n = context.l10n;
     switch (_status) {
       case EmergencyStatus.created:
       case EmergencyStatus.searching:
-        return widget.redirected ? 'Передаём другой службе...' : 'Поиск охраны...';
+        return widget.redirected ? l10n.sosStatusRedirecting : l10n.sosStatusSearching;
       case EmergencyStatus.offerSent:
-        return widget.redirected ? 'Передаём другой службе...' : 'Ожидание ответа...';
+        return widget.redirected ? l10n.sosStatusRedirecting : l10n.sosStatusWaiting;
       case EmergencyStatus.accepted:
-        return 'Вызов принят';
+        return l10n.sosStatusAccepted;
       case EmergencyStatus.enRoute:
-        return 'Охрана в пути';
+        return l10n.sosStatusEnRoute;
       case EmergencyStatus.arrived:
-        return 'Охрана прибыла';
+        return l10n.sosStatusArrived;
       case EmergencyStatus.completed:
-        return 'Вызов завершён';
+        return l10n.sosStatusCompleted;
       case EmergencyStatus.cancelledByUser:
-        return 'Отменён';
+        return l10n.sosStatusCancelled;
       case EmergencyStatus.cancelledBySystem:
-        return 'Отменён системой';
+        return l10n.sosStatusCancelledBySystem;
     }
   }
   
@@ -401,7 +406,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Вызов активен',
+                        context.l10n.sosCallActive,
                         style: TextStyle(
                           color: _statusColor,
                           fontWeight: FontWeight.w600,
@@ -450,7 +455,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
                   ElevatedButton.icon(
                     onPressed: _callPolice,
                     icon: const Icon(Icons.call),
-                    label: const Text('Позвонить 102'),
+                    label: Text(context.l10n.sosCall102),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.sosRed,
                       foregroundColor: Colors.white,
@@ -465,7 +470,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
                       ElevatedButton.icon(
                         onPressed: _createEmergencyCall,
                         icon: const Icon(Icons.refresh),
-                        label: const Text('Повторить'),
+                        label: Text(context.l10n.commonRetry),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.sosRed,
                           foregroundColor: Colors.white,
@@ -477,7 +482,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
                       OutlinedButton.icon(
                         onPressed: () => Geolocator.openAppSettings(),
                         icon: const Icon(Icons.settings),
-                        label: const Text('Настройки'),
+                        label: Text(context.l10n.sosSettings),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white70,
                           side: const BorderSide(color: Colors.white30),
@@ -510,8 +515,8 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Text(
                     widget.redirected
-                        ? 'Ваш вызов передан другой службе.\nИщем ближайшего свободного сотрудника.'
-                        : 'Ближайшие службы оповещены',
+                        ? context.l10n.sosRedirectedHint
+                        : context.l10n.sosServicesNotified,
                     style: Theme.of(context).textTheme.bodyMedium,
                     textAlign: TextAlign.center,
                   ),
@@ -537,7 +542,9 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen>
                       ),
                     ),
                     child: Text(
-                      _error == null ? 'Отменить вызов' : 'На главную',
+                      _error == null
+                          ? context.l10n.sosCancelCall
+                          : context.l10n.sosToHome,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/l10n.dart';
 import '../../../shared/providers/emergency_provider.dart';
 
 class ReviewScreen extends ConsumerStatefulWidget {
@@ -74,14 +75,16 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   children: [
               const Icon(Icons.check_circle_outline, color: AppColors.success, size: 80),
               const SizedBox(height: 24),
-              const Text(
-                'Вызов завершён',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+              Text(
+                context.l10n.reviewCallCompleted,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Оцените работу экипажа',
-                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+              Text(
+                context.l10n.reviewRateCrew,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 32),
               Row(
@@ -94,7 +97,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 maxLines: 4,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Комментарий (необязательно)',
+                  hintText: context.l10n.reviewCommentHint,
                   hintStyle: const TextStyle(color: AppColors.textSecondary),
                   filled: true,
                   fillColor: AppColors.backgroundCard,
@@ -116,13 +119,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   ),
                   child: _isLoading 
                       ? const CircularProgressIndicator(color: Colors.white) 
-                      : const Text('Отправить отзыв', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600)),
+                      : Text(context.l10n.reviewSubmit, style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600)),
                 ),
               ),
               const SizedBox(height: 16),
               TextButton(
                 onPressed: _skip,
-                child: const Text('Пропустить', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+                child: Text(context.l10n.reviewSkip, style: const TextStyle(color: AppColors.textSecondary, fontSize: 16)),
               ),
                   ],
                 ),

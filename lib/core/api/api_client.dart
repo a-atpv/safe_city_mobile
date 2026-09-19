@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/app_constants.dart';
+import '../../l10n/app_language.dart';
 import 'api_exception.dart';
 
 class ApiClient {
@@ -78,6 +79,8 @@ class ApiClient {
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
+        // Язык интерфейса: на нём сервер пишет тексты ошибок и письмо с кодом.
+        options.headers['Accept-Language'] = AppLanguageStore.current.code;
         return handler.next(options);
       },
       onError: (error, handler) async {
@@ -164,6 +167,11 @@ class ApiClient {
       final response = await _refreshDio.post(
         '/auth/refresh',
         data: {'refresh_token': refreshToken},
+        // У этого Dio нет интерцепторов (чтобы не было рекурсии), так что язык
+        // сюда нужно положить руками.
+        options: Options(headers: {
+          'Accept-Language': AppLanguageStore.current.code,
+        }),
       );
 
       final data = response.data;

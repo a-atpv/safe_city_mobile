@@ -9,7 +9,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/analytics/app_analytics.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/l10n.dart';
 import '../../../shared/providers/payment_provider.dart';
+import '../../../shared/utils/linked_text.dart';
 import '../application/payment_launcher.dart';
 import '../data/payment_models.dart';
 
@@ -66,7 +68,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось открыть документ')),
+        SnackBar(content: Text(context.l10n.loginDocumentOpenFailed)),
       );
     }
   }
@@ -82,7 +84,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
     if (result == null) {
       final err =
-          ref.read(paymentProvider).error ?? 'Не удалось создать платёж';
+          ref.read(paymentProvider).error ?? context.l10n.paywallPaymentCreateFailed;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(err)));
       return;
@@ -103,22 +105,23 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final state = ref.watch(paymentProvider);
     final loading = state.isLoadingPlans && state.plans.isEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Подписка'),
+        title: Text(l10n.profileSubscription),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
           TextButton(
             onPressed: () =>
                 context.canPop() ? context.pop() : context.go('/home'),
-            child: const Text(
-              'Позже',
-              style: TextStyle(color: AppColors.textSecondary),
+            child: Text(
+              l10n.permLater,
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
           ),
         ],
@@ -136,19 +139,18 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     child: ListView(
                       padding: const EdgeInsets.all(20),
                       children: [
-                        const Text(
-                          'Полный доступ ко всем функциям',
-                          style: TextStyle(
+                        Text(
+                          l10n.paywallHeadline,
+                          style: const TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Кнопка SOS, геолокация в реальном времени и связь '
-                          'с диспетчером 24/7.',
-                          style: TextStyle(
+                        Text(
+                          l10n.paywallSubhead,
+                          style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 14,
                           ),
@@ -194,9 +196,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                                       color: Colors.white,
                                     ),
                                   )
-                                : const Text(
-                                    'Оформить',
-                                    style: TextStyle(
+                                : Text(
+                                    l10n.homeSubscribe,
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -217,15 +219,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   /// amount, frequency, duration, and how to switch the charges off. The
   /// consent to those charges lives in [_consentBlock], next to the button.
   Widget _recurringTerms(List<Plan> plans) {
+    final l10n = context.l10n;
     return Text(
       AppConstants.subscriptionRecurringCopy
-          ? 'Подписка продлевается автоматически: ${_chargeAmounts(plans)} '
-              '— бессрочно, до отмены. Отключить автопродление можно в '
-              'любой момент: Профиль → Подписка → «Отменить подписку», '
-              'либо обратившись в службу поддержки. После отмены списаний '
-              'больше не будет, доступ сохранится до конца оплаченного '
-              'периода.'
-          : 'Оплата за выбранный период.',
+          ? l10n.paywallRecurringTerms(_chargeAmounts(plans))
+          : l10n.paywallOneTimeTerms,
       style: _termsStyle,
       textAlign: TextAlign.center,
     );
@@ -238,6 +236,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   /// so no payment can start without it. Tapping anywhere in the block toggles
   /// the box; the two links win the tap over their own spans.
   Widget _consentBlock() {
+    final l10n = context.l10n;
     final link = _termsStyle.copyWith(
       color: AppColors.primary,
       decoration: TextDecoration.underline,
@@ -277,31 +276,16 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               child: Text.rich(
                 TextSpan(
                   style: _termsStyle,
-                  children: [
-                    const TextSpan(text: 'Я даю согласие '),
-                    if (AppConstants.subscriptionRecurringCopy)
-                      const TextSpan(
-                        text: 'на регулярные (автоматические) списания, ',
-                      ),
-                    const TextSpan(text: 'на '),
-                    TextSpan(
-                      text: 'обработку персональных данных',
-                      style: link,
-                      recognizer: _privacyRecognizer,
-                    ),
-                    const TextSpan(text: ' и принимаю условия '),
-                    TextSpan(
-                      text: 'публичной оферты',
-                      style: link,
-                      recognizer: _offerRecognizer,
-                    ),
-                    TextSpan(
-                      text: AppConstants.subscriptionRecurringCopy
-                          ? ', в которой подробно описаны правила '
-                              'рекуррентных платежей.'
-                          : '.',
-                    ),
-                  ],
+                  children: linkedTextSpans(
+                    build: (m) => AppConstants.subscriptionRecurringCopy
+                        ? l10n.paywallConsentRecurring(m[0], m[1])
+                        : l10n.paywallConsent(m[0], m[1]),
+                    links: [
+                      TextLink(l10n.paywallConsentPrivacy, _privacyRecognizer),
+                      TextLink(l10n.paywallConsentOffer, _offerRecognizer),
+                    ],
+                    linkStyle: link,
+                  ),
                 ),
               ),
             ),
@@ -314,14 +298,18 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   /// «800 ₸ каждый месяц или 6900 ₸ каждый год», built from the live plans so
   /// the terms can never drift from the prices on the cards above.
   String _chargeAmounts(List<Plan> plans) {
+    final l10n = context.l10n;
     if (plans.isEmpty) {
-      return '${AppConstants.monthlyPriceKzt} ₸ каждый месяц или '
-          '${AppConstants.yearlyPriceKzt} ₸ каждый год';
+      return l10n.paywallChargeEither(
+        l10n.paywallChargeMonthly('${AppConstants.monthlyPriceKzt}'),
+        l10n.paywallChargeYearly('${AppConstants.yearlyPriceKzt}'),
+      );
     }
     return plans
-        .map((p) =>
-            '${p.priceTenge} ₸ ${p.isYearly ? 'каждый год' : 'каждый месяц'}')
-        .join(' или ');
+        .map((p) => p.isYearly
+            ? l10n.paywallChargeYearly('${p.priceTenge}')
+            : l10n.paywallChargeMonthly('${p.priceTenge}'))
+        .reduce(l10n.paywallChargeEither);
   }
 
   Widget _planCard(Plan p) {
@@ -355,7 +343,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   Row(
                     children: [
                       Text(
-                        p.isYearly ? 'Годовая' : 'Месячная',
+                        p.isYearly
+                            ? context.l10n.paywallPlanYearly
+                            : context.l10n.paywallPlanMonthly,
                         style: const TextStyle(
                           color: AppColors.textPrimary,
                           fontSize: 16,
@@ -374,9 +364,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                             color: const Color(0x2622C55E),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text(
-                            'выгодно',
-                            style: TextStyle(
+                          child: Text(
+                            context.l10n.paywallBestValue,
+                            style: const TextStyle(
                               color: AppColors.success,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -388,7 +378,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${p.priceTenge} ₸ / ${p.isYearly ? 'год' : 'мес'}',
+                    p.isYearly
+                        ? context.l10n.paywallPricePerYear('${p.priceTenge}')
+                        : context.l10n.paywallPricePerMonth('${p.priceTenge}'),
                     style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 14,
@@ -409,11 +401,12 @@ class _Features extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const items = [
-      'Кнопка SOS в одно касание',
-      'Геолокация в реальном времени',
-      'Связь с диспетчером 24/7',
-      'Приложение для iOS и Android',
+    final l10n = context.l10n;
+    final items = [
+      l10n.paywallFeatureSos,
+      l10n.paywallFeatureLocation,
+      l10n.paywallFeatureDispatcher,
+      l10n.paywallFeaturePlatforms,
     ];
     return Column(
       children: [

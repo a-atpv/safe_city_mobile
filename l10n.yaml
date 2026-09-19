@@ -1,0 +1,8 @@
+# Строки приложения на трёх языках. Исходный язык — русский: новые строки
+# сначала пишутся в app_ru.arb, потом переводятся в app_kk.arb и app_en.arb.
+# Одинаковый набор ключей во всех трёх проверяет test/l10n_arb_test.dart.
+arb-dir: lib/l10n
+template-arb-file: app_ru.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/l10n.dart';
 import '../../../shared/widgets/widgets.dart';
 import '../../../shared/providers/providers.dart';
 import '../../../shared/utils/error_handler.dart';
+import '../../../shared/utils/linked_text.dart';
 
 const _offerUrl = 'https://www.safe-city.kz/legal/public-offer';
 const _termsUrl = 'https://www.safe-city.kz/legal/terms-of-service';
@@ -51,7 +53,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось открыть документ')),
+          SnackBar(content: Text(context.l10n.loginDocumentOpenFailed)),
         );
       }
     }
@@ -59,11 +61,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Введите email';
+      return context.l10n.loginEnterEmail;
     }
     final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     if (!emailRegex.hasMatch(value.trim())) {
-      return 'Введите корректный email';
+      return context.l10n.loginInvalidEmail;
     }
     return null;
   }
@@ -82,6 +84,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final authState = ref.watch(authProvider);
 
     ref.listen<AuthState>(authProvider, (previous, next) {
@@ -155,7 +158,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 8),
                   
                   Text(
-                    'Ваша безопасность — наш приоритет',
+                    l10n.loginTagline,
                     style: Theme.of(context).textTheme.bodyMedium,
                     textAlign: TextAlign.center,
                   ),
@@ -195,7 +198,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const SizedBox(height: 20),
                         
                         PrimaryButton(
-                          text: 'Получить код',
+                          text: l10n.loginGetCode,
                           isLoading: authState.isLoading,
                           onPressed: _requestOtp,
                         ),
@@ -221,28 +224,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         return Text.rich(
                           TextSpan(
                             style: baseStyle,
-                            children: [
-                              const TextSpan(
-                                text: 'Продолжая, вы принимаете ',
-                              ),
-                              TextSpan(
-                                text: 'публичную оферту',
-                                style: linkStyle,
-                                recognizer: _offerRecognizer,
-                              ),
-                              const TextSpan(text: ', '),
-                              TextSpan(
-                                text: 'условия использования',
-                                style: linkStyle,
-                                recognizer: _termsRecognizer,
-                              ),
-                              const TextSpan(text: ' и '),
-                              TextSpan(
-                                text: 'политику конфиденциальности',
-                                style: linkStyle,
-                                recognizer: _privacyRecognizer,
-                              ),
-                            ],
+                            children: linkedTextSpans(
+                              build: (m) =>
+                                  l10n.loginConsent(m[0], m[1], m[2]),
+                              links: [
+                                TextLink(
+                                  l10n.loginConsentOffer,
+                                  _offerRecognizer,
+                                ),
+                                TextLink(
+                                  l10n.loginConsentTerms,
+                                  _termsRecognizer,
+                                ),
+                                TextLink(
+                                  l10n.loginConsentPrivacy,
+                                  _privacyRecognizer,
+                                ),
+                              ],
+                              linkStyle: linkStyle,
+                            ),
                           ),
                           textAlign: TextAlign.center,
                         );
@@ -257,6 +257,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   );
                 },
+              ),
+            ),
+            // Язык выбирают до того, как ввести почту: человек, который не
+            // читает по-русски, должен найти кнопку, не понимая экрана.
+            const Positioned(
+              top: 0,
+              right: 0,
+              child: SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(0, 8, 16, 0),
+                  child: LanguageButton(),
+                ),
               ),
             ),
           ],

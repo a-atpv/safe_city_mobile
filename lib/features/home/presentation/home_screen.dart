@@ -13,6 +13,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/services/location_permission_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/update/update_prompt.dart';
+import '../../../l10n/l10n.dart';
 import '../../../shared/models/emergency_call.dart';
 import '../../../shared/providers/providers.dart';
 
@@ -87,6 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _cancelEmergencySearch() async {
     if (_callId == null) return;
 
+    final l10n = context.l10n;
     final secretPhraseController = TextEditingController();
     bool obscure = true;
 
@@ -96,19 +98,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppColors.backgroundLight,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Отменить вызов?'),
+          title: Text(l10n.sosCancelTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Введите секретный код для подтверждения отмены вызова охраны.'),
+              Text(l10n.sosCancelBody),
               const SizedBox(height: 16),
               TextField(
                 controller: secretPhraseController,
                 obscureText: obscure,
                 decoration: InputDecoration(
-                  labelText: 'Секретный код',
-                  hintText: 'Ваше секретное слово',
+                  labelText: l10n.profileSecretLabel,
+                  hintText: l10n.sosSecretHint,
                   suffixIcon: IconButton(
                     icon: Icon(
                       obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
@@ -123,12 +125,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Нет'),
+              child: Text(l10n.commonNo),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-              child: const Text('Да, отменить'),
+              child: Text(l10n.sosCancelConfirm),
             ),
           ],
         ),
@@ -167,6 +169,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _createEmergencyCall() async {
+    // Строки берём до первого await: к концу запроса экран может уйти.
+    final l10n = context.l10n;
     setState(() {
       _error = null;
       _isSearchingEmergency = true;
@@ -203,7 +207,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       } else {
         final emergencyState = ref.read(emergencyProvider);
         setState(() {
-          _error = emergencyState.error ?? 'Не удалось создать вызов.';
+          _error = emergencyState.error ?? l10n.sosCreateFailed;
           _isSearchingEmergency = false;
         });
         _showCreateCallError(_error!, emergencyState.errorCode);
@@ -225,30 +229,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _showCreateCallError(_error!, apiError.code);
     } on LocationServiceDisabledException catch (_) {
       setState(() {
-        _error =
-            'Службы геолокации отключены. Включите GPS в настройках устройства.';
+        _error = l10n.sosLocationServicesOff;
         _isSearchingEmergency = false;
       });
       _showEmergencyError(_error!);
     } on PermissionDeniedException catch (_) {
       setState(() {
-        _error =
-            'Доступ к геолокации запрещён. Разрешите доступ для вызова охраны.';
+        _error = l10n.sosLocationDenied;
         _isSearchingEmergency = false;
       });
       _showEmergencyError(_error!);
     } on TimeoutException catch (_) {
       setState(() {
-        _error =
-            'Не удалось определить местоположение за отведенное время. Проверьте GPS и повторите.';
+        _error = l10n.sosLocationTimeout;
         _isSearchingEmergency = false;
       });
       _showEmergencyError(_error!);
     } catch (e) {
       setState(() {
         _error = kDebugMode
-            ? 'Не удалось определить местоположение: $e'
-            : 'Не удалось определить местоположение. Проверьте настройки GPS.';
+            ? l10n.sosLocationFailedDetails('$e')
+            : l10n.sosLocationFailed;
         _isSearchingEmergency = false;
       });
       _showEmergencyError(_error!);
@@ -280,23 +281,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _showOutsideServiceAreaDialog(String message) {
+    final l10n = context.l10n;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.backgroundLight,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.location_off_outlined, color: AppColors.warning),
-            SizedBox(width: 12),
-            Expanded(child: Text('Вы вне зоны обслуживания')),
+            const Icon(Icons.location_off_outlined, color: AppColors.warning),
+            const SizedBox(width: 12),
+            Expanded(child: Text(l10n.sosOutsideAreaTitle)),
           ],
         ),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Закрыть'),
+            child: Text(l10n.commonClose),
           ),
           ElevatedButton.icon(
             onPressed: () async {
@@ -308,7 +310,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
             ),
-            label: const Text('Позвонить 102'),
+            label: Text(l10n.sosCall102),
           ),
         ],
       ),
@@ -319,7 +321,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     try {
       await launchUrl(Uri(scheme: 'tel', path: '102'));
     } catch (_) {
-      _showEmergencyError('Не удалось открыть набор номера. Позвоните 102.');
+      if (!mounted) return;
+      _showEmergencyError(context.l10n.sosDialerFailed);
     }
   }
 
@@ -330,19 +333,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
   
   void _showSubscriptionDialog() {
+    final l10n = context.l10n;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.backgroundLight,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Подписка не активна'),
-        content: const Text(
-          'Для использования функции экстренного вызова необходима активная подписка.',
-        ),
+        title: Text(l10n.homeNoSubscriptionTitle),
+        content: Text(l10n.homeNoSubscriptionBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Закрыть'),
+            child: Text(l10n.commonClose),
           ),
           // Purchase flow is hidden while payments are disabled.
           if (AppConstants.paymentEnabled)
@@ -351,7 +353,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 Navigator.pop(context);
                 context.push('/subscribe');
               },
-              child: const Text('Оформить'),
+              child: Text(l10n.homeSubscribe),
             ),
         ],
       ),
@@ -546,8 +548,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               padding: const EdgeInsets.all(32),
               child: Text(
                 hasSubscription
-                    ? 'Нажмите для вызова охраны'
-                    : 'Подписка не активна — нажмите, чтобы оформить',
+                    ? context.l10n.homeTapToCall
+                    : context.l10n.homeTapToSubscribe,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
@@ -673,7 +675,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  isAccepted ? 'В работе' : 'Поиск\nохраны...',
+                                  isAccepted
+                                      ? context.l10n.homeInProgress
+                                      : context.l10n.homeSearchingSecurity,
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                     color: AppColors.textPrimary,
@@ -702,7 +706,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               const SizedBox(height: 44),
               if (!isAccepted)
                 Text(
-                  'Ближайшие службы\nоповещены',
+                  context.l10n.homeServicesNotified,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppColors.textSecondary,
@@ -730,10 +734,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                   backgroundColor: AppColors.error.withAlpha(15),
                 ),
-                child: const Text(
-                  'Отменить вызов',
-                  style:
-                      TextStyle(fontWeight: FontWeight.w600, fontSize: 26 / 2),
+                child: Text(
+                  context.l10n.sosCancelCall,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 26 / 2),
                 ),
               ),
             ),
@@ -747,15 +751,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildCurrentCallWidget(EmergencyCall call) {
+    final l10n = context.l10n;
     final guard = call.guard;
-    final companyName = call.securityCompany?.name ?? 'Охрана назначена';
+    final companyName = call.securityCompany?.name ?? l10n.homeSecurityAssigned;
     final displayName = guard != null ? guard.fullName : companyName;
     final companyPhone = call.securityCompany?.phone;
 
     final hasAvatar = guard?.avatarUrl != null && guard!.avatarUrl!.isNotEmpty;
     final ratingText = guard != null 
-        ? '${guard.rating.toStringAsFixed(1)} (${guard.totalReviews} отзывов)'
-        : '4.8 (127 отзывов)';
+        ? '${guard.rating.toStringAsFixed(1)} (${l10n.homeReviews(guard.totalReviews)})'
+        : '4.8 (${l10n.homeReviews(127)})';
 
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -870,9 +875,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: const Text(
-                    'Детали вызова',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                  child: Text(
+                    l10n.homeCallDetails,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -940,7 +945,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  hasSubscription ? 'Активна' : 'Не активна',
+                  hasSubscription
+                      ? context.l10n.profileSubscriptionActive
+                      : context.l10n.homeSubscriptionInactive,
                   style: TextStyle(
                     color: hasSubscription
                         ? AppColors.success

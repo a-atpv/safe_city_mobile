@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/l10n.dart';
 import '../../../shared/widgets/widgets.dart';
 import '../../../shared/providers/providers.dart';
 import '../../../shared/utils/error_handler.dart';
@@ -124,7 +125,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось выбрать изображение')),
+          SnackBar(content: Text(context.l10n.profileImagePickFailed)),
         );
       }
     }
@@ -154,7 +155,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               ),
               ListTile(
                 leading: const Icon(Icons.photo_camera_outlined, color: AppColors.primary),
-                title: const Text('Сделать фото', style: TextStyle(color: AppColors.textPrimary)),
+                title: Text(context.l10n.profileTakePhoto, style: const TextStyle(color: AppColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _pickAvatar(ImageSource.camera);
@@ -162,7 +163,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
-                title: const Text('Выбрать из галереи', style: TextStyle(color: AppColors.textPrimary)),
+                title: Text(context.l10n.profileChooseFromGallery, style: const TextStyle(color: AppColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _pickAvatar(ImageSource.gallery);
@@ -171,7 +172,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               if (_pickedAvatar != null)
                 ListTile(
                   leading: const Icon(Icons.delete_outline, color: AppColors.error),
-                  title: const Text('Убрать фото', style: TextStyle(color: AppColors.error)),
+                  title: Text(context.l10n.onboardingRemovePhoto, style: const TextStyle(color: AppColors.error)),
                   onTap: () {
                     Navigator.pop(sheetContext);
                     setState(() => _pickedAvatar = null);
@@ -287,7 +288,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
                                 Center(
                                   child: Text(
-                                    'Добавьте фото профиля',
+                                    context.l10n.onboardingAddPhoto,
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodySmall
@@ -300,7 +301,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                 // Heading
                                 Center(
                                   child: Text(
-                                    'Добро пожаловать!',
+                                    context.l10n.onboardingWelcome,
                                     style: Theme.of(
                                       context,
                                     ).textTheme.headlineLarge,
@@ -312,7 +313,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
                                 Center(
                                   child: Text(
-                                    'Заполните данные профиля,\nчтобы продолжить',
+                                    context.l10n.onboardingFillProfile,
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodyMedium
@@ -335,7 +336,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                     children: [
                                       Row(
                                         children: [
-                                          _label('Полное имя'),
+                                          Flexible(
+                                            child: _label(
+                                              context.l10n.onboardingFullName,
+                                            ),
+                                          ),
                                           Text(
                                             ' *',
                                             style: TextStyle(color: Colors.red),
@@ -352,13 +357,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                           color: AppColors.textPrimary,
                                         ),
                                         decoration: _inputDecoration(
-                                          hint: 'Ваше имя и фамилия',
+                                          hint: context.l10n.onboardingNameHint,
                                           icon: Icons.badge_outlined,
                                         ),
                                         validator: (value) {
                                           if (value == null ||
                                               value.trim().isEmpty) {
-                                            return 'Пожалуйста, введите ваше имя';
+                                            return context.l10n.onboardingNameRequired;
                                           }
                                           return null;
                                         },
@@ -366,7 +371,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
                                       const SizedBox(height: 20),
 
-                                      _label('Номер телефона'),
+                                      _label(context.l10n.onboardingPhone),
                                       const SizedBox(height: 8),
                                       TextFormField(
                                         controller: _phoneController,
@@ -385,7 +390,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
                                       const SizedBox(height: 4),
                                       Text(
-                                        'Необязательно',
+                                        context.l10n.onboardingOptional,
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall
@@ -397,7 +402,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                       const SizedBox(height: 20),
 
                                       _label(
-                                        'Секретное слово * (для отмены вызова)',
+                                        context.l10n.onboardingSecretLabel,
                                       ),
                                       const SizedBox(height: 8),
                                       TextFormField(
@@ -406,13 +411,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                           color: AppColors.textPrimary,
                                         ),
                                         decoration: _inputDecoration(
-                                          hint: 'Секретное слово',
+                                          hint: context.l10n.onboardingSecretHint,
                                           icon: Icons.lock_outline,
                                         ),
                                         validator: (value) {
                                           if (value == null ||
                                               value.trim().isEmpty) {
-                                            return 'Пожалуйста, введите секретное слово';
+                                            return context.l10n.onboardingSecretRequired;
                                           }
                                           return null;
                                         },
@@ -426,7 +431,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                 const SizedBox(height: 32),
 
                                 PrimaryButton(
-                                  text: 'Продолжить',
+                                  text: context.l10n.commonContinue,
                                   isLoading: userState.isLoading,
                                   onPressed: userState.isLoading
                                       ? null
@@ -444,7 +449,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                         ? null
                                         : _skipOnboarding,
                                     child: Text(
-                                      'Пропустить',
+                                      context.l10n.reviewSkip,
                                       style: TextStyle(
                                         color: AppColors.textSecondary,
                                         fontSize: 14,

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../theme/app_colors.dart';
+import '../../l10n/l10n.dart';
 
 class LocationPermissionService {
   LocationPermissionService._();
@@ -30,8 +31,8 @@ class LocationPermissionService {
     if (!serviceEnabled) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Службы геолокации отключены. Включите GPS в настройках устройства.'),
+          SnackBar(
+            content: Text(context.l10n.sosLocationServicesOff),
           ),
         );
       }
@@ -49,9 +50,9 @@ class LocationPermissionService {
       if (context.mounted && permission == LocationPermission.deniedForever) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Доступ к геолокации запрещён. Откройте настройки приложения.'),
+            content: Text(context.l10n.permLocationDeniedOpenSettings),
             action: SnackBarAction(
-              label: 'Настройки',
+              label: context.l10n.sosSettings,
               onPressed: Geolocator.openAppSettings,
             ),
           ),
@@ -73,8 +74,8 @@ class LocationPermissionService {
     if (!serviceEnabled) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Службы геолокации отключены. Включите GPS в настройках устройства.'),
+          SnackBar(
+            content: Text(context.l10n.sosLocationServicesOff),
           ),
         );
       }
@@ -119,18 +120,18 @@ class LocationPermissionService {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.backgroundLight,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Разрешение на геолокацию',
-          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+        title: Text(
+          ctx.l10n.permLocationTitle,
+          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
-        content: const Text(
-          'Safe City собирает данные о местоположении для работы функции экстренного вызова SOS, даже когда приложение закрыто или не используется. Эти данные необходимы для оперативного прибытия службы охраны по вашим координатам.',
-          style: TextStyle(color: AppColors.textPrimary, fontSize: 15, height: 1.4),
+        content: Text(
+          ctx.l10n.permLocationDisclosure,
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отклонить', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(ctx.l10n.permDecline, style: const TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -139,7 +140,7 @@ class LocationPermissionService {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Принять', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(ctx.l10n.permAccept, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -154,18 +155,18 @@ class LocationPermissionService {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.backgroundLight,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Фоновый режим SOS',
-          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+        title: Text(
+          ctx.l10n.permBackgroundTitle,
+          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
-        content: const Text(
-          'Для надежной отправки сигнала SOS при свернутом или закрытом приложении, пожалуйста, выберите «Разрешить в любом режиме» (Allow all the time) в настройках разрешений.',
-          style: TextStyle(color: AppColors.textPrimary, fontSize: 15, height: 1.4),
+        content: Text(
+          ctx.l10n.permBackgroundBody,
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Позже', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(ctx.l10n.permLater, style: const TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -174,7 +175,7 @@ class LocationPermissionService {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('В настройки', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(ctx.l10n.permOpenSettings, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -212,9 +213,9 @@ class LocationPermissionService {
         // forceLocationManager: true форсировало устаревший LocationManager и
         // давало заметно более грубые координаты.
         forceLocationManager: false,
-        foregroundNotificationConfig: const ForegroundNotificationConfig(
+        foregroundNotificationConfig: ForegroundNotificationConfig(
           notificationTitle: 'Safe City SOS',
-          notificationText: 'Отправка координат охране в фоновом режиме',
+          notificationText: currentL10n.locationForegroundNotification,
           enableWakeLock: true,
         ),
       );
