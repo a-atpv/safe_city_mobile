@@ -12,6 +12,7 @@ import 'core/theme/theme.dart';
 import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
 import 'l10n/l10n.dart';
+import 'shared/providers/auth_provider.dart';
 import 'shared/providers/language_provider.dart';
 import 'shared/providers/websocket_provider.dart';
 import 'shared/providers/emergency_provider.dart';
@@ -88,6 +89,10 @@ class _SafeCityAppState extends ConsumerState<SafeCityApp> {
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSub;
 
+  /// Where a payment deep link wants to land, kept until the router will
+  /// actually go there. See [_deliverPayReturn].
+  String? _pendingPayReturn;
+
   @override
   void initState() {
     super.initState();
@@ -95,10 +100,10 @@ class _SafeCityAppState extends ConsumerState<SafeCityApp> {
   }
 
   /// Handle `safecity://pay/success|fail` deep links used to return the user
-  /// from the payment page back into the app. Both platforms now pay inside
-  /// [PaymentWebViewScreen], which catches the return URL itself and closes —
-  /// so this only fires when the trip actually left the app (a bank app during
-  /// 3DS, say).
+  /// from the payment page back into the app. Paying happens in the phone's own
+  /// browser on both platforms, so this is the only way back — the backend's
+  /// success/fail page redirects to the scheme, and the app may well be cold
+  /// when it arrives.
   Future<void> _initDeepLinks() async {
     _linkSub = _appLinks.uriLinkStream.listen(
       _handleUri,
@@ -115,15 +120,40 @@ class _SafeCityAppState extends ConsumerState<SafeCityApp> {
     // callback is the source of truth); we just land the user back on it.
     final target = payReturnRoute(uri);
     if (target == null) return;
-    final router = ref.read(routerProvider);
-    // The screen may already be up — the paywall pushes it as soon as the
-    // payment page closes. Going there again stacks a second identical copy,
-    // and then «назад» pops onto its twin and looks like it did nothing.
-    // `currentConfiguration` (not `state`) because the link can arrive before
-    // the router has resolved anything, and `state` throws on an empty match
-    // list.
-    if (router.routerDelegate.currentConfiguration.uri.path == target) return;
-    router.go(target);
+    _pendingPayReturn = target;
+    _deliverPayReturn();
+  }
+
+  /// Navigate to where the payment link points, once the router is willing to
+  /// go there.
+  ///
+  /// Paying happens in the browser now, and a trip long enough to leave the app
+  /// killed means the link arrives at a cold start. The router's redirect keeps
+  /// everything on the splash screen while the token is being checked, and then
+  /// sends the splash to `/home` — so a `go()` fired at that moment is simply
+  /// swallowed and the user never sees the confirmation. Hold the target
+  /// instead and spend it when auth has settled; [build] retries on every auth
+  /// change.
+  void _deliverPayReturn() {
+    final target = _pendingPayReturn;
+    if (target == null) return;
+    if (ref.read(authProvider).status == AuthStatus.unknown) return;
+
+    _pendingPayReturn = null;
+    // The auth listener below can fire mid-build, and `go()` rebuilds the
+    // Router — navigate a frame later so it never lands inside one.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final router = ref.read(routerProvider);
+      // The screen may already be up — the paywall pushes it as soon as the
+      // payment page opens. Going there again stacks a second identical copy,
+      // and then «назад» pops onto its twin and looks like it did nothing.
+      // `currentConfiguration` (not `state`) because the link can arrive before
+      // the router has resolved anything, and `state` throws on an empty match
+      // list.
+      if (router.routerDelegate.currentConfiguration.uri.path == target) return;
+      router.go(target);
+    });
   }
 
   @override
@@ -142,6 +172,9 @@ class _SafeCityAppState extends ConsumerState<SafeCityApp> {
     // Держим трекер координат живым: он сам стартует и гаснет по состоянию
     // активного вызова, поэтому не должен зависеть от того, какой экран открыт.
     ref.watch(emergencyLocationProvider);
+
+    // Возврат из браузера после оплаты мог прийти раньше, чем проверился токен.
+    ref.listen<AuthState>(authProvider, (_, __) => _deliverPayReturn());
 
     // Listen to WS stream for real-time updates
     ref.listen<AsyncValue<Map<String, dynamic>>>(webSocketStreamProvider, (previous, next) {

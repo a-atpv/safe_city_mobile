@@ -189,6 +189,7 @@
   "paywallHeadline": "Full access to all features",
   "paywallSubhead": "SOS button, real-time location and 24/7 contact with the dispatcher.",
   "paywallPaymentCreateFailed": "Couldn't create the payment",
+  "paywallPaymentPageFailed": "Couldn't open the payment page",
   "paywallRecurringTerms": "Your subscription renews automatically: {amounts}, indefinitely until you cancel. You can turn off auto-renewal at any time: Profile → Subscription → “Cancel subscription”, or by contacting support. After you cancel there will be no more charges, and access stays until the end of the paid period.",
   "paywallOneTimeTerms": "Payment for the selected period.",
   "paywallChargeMonthly": "{price} ₸ every month",

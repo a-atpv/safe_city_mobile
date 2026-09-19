@@ -635,6 +635,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get paywallPaymentCreateFailed => 'Не удалось создать платёж';
 
   @override
+  String get paywallPaymentPageFailed => 'Не удалось открыть страницу оплаты';
+
+  @override
   String paywallRecurringTerms(String amounts) {
     return 'Подписка продлевается автоматически: $amounts — бессрочно, до отмены. Отключить автопродление можно в любой момент: Профиль → Подписка → «Отменить подписку», либо обратившись в службу поддержки. После отмены списаний больше не будет, доступ сохранится до конца оплаченного периода.';
   }

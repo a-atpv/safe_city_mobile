@@ -1,25 +1,31 @@
-import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import '../presentation/payment_webview_screen.dart';
-
-/// Opens the Robokassa payment page for a given payment URL.
+/// Opens the Robokassa payment page in the phone's own browser.
 ///
-/// Uses an in-app [PaymentWebViewScreen] on **both** platforms. The screen
-/// implements [WidgetsBindingObserver] to freeze/blank the WebView when the app
-/// goes to background, preventing iOS watchdog kills (`0x8badf00d`).
+/// Deliberately not an in-app WebView and not an in-app browser sheet. Both
+/// were tried and both died the same way: backgrounding the app on the card
+/// form killed the process, whether the page lived in an
+/// `SFSafariViewController` or in a `WKWebView` we controlled ourselves. In the
+/// system browser the payment belongs to another app — ours backgrounds with a
+/// plain Flutter screen on top, and the payment survives even if iOS reclaims
+/// us while the user is away.
 ///
-/// Previously iOS used `SFSafariViewController` via `url_launcher`, but its
-/// internal WebContent process kept the main thread blocked in background,
-/// triggering the watchdog. In-app WebView gives us full lifecycle control.
+/// The way back is the deep link the backend's success/fail page redirects to
+/// (`safecity://pay/...`), handled in `main.dart`. Nothing here can observe the
+/// outcome; the caller confirms it by polling the subscription status, and the
+/// server-side ResultURL callback is what actually activates it.
 ///
-/// The future completes when the payment screen is popped (either by the user
-/// or automatically when Robokassa redirects to the success/fail callback).
-/// The caller must confirm the outcome by polling the subscription status
-/// afterwards — this only opens the page.
+/// Returns false when no browser could be opened, so the caller can say so
+/// instead of parking the user in front of a payment that never started.
 class PaymentLauncher {
-  static Future<void> open(BuildContext context, String url) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => PaymentWebViewScreen(url: url)),
-    );
+  static Future<bool> open(String url) async {
+    try {
+      return await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {
+      return false;
+    }
   }
 }

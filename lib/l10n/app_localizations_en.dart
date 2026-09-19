@@ -628,6 +628,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paywallPaymentCreateFailed => 'Couldn\'t create the payment';
 
   @override
+  String get paywallPaymentPageFailed => 'Couldn\'t open the payment page';
+
+  @override
   String paywallRecurringTerms(String amounts) {
     return 'Your subscription renews automatically: $amounts, indefinitely until you cancel. You can turn off auto-renewal at any time: Profile → Subscription → “Cancel subscription”, or by contacting support. After you cancel there will be no more charges, and access stays until the end of the paid period.';
   }

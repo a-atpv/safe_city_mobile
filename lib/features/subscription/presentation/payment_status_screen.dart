@@ -47,8 +47,15 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Snappy re-check when the user returns from the iOS Safari sheet.
-    if (state == AppLifecycleState.resumed && !_active && !_timedOut) {
+    if (state != AppLifecycleState.resumed || !mounted || _active) return;
+    // Coming back from the browser is the moment the payment is most likely to
+    // have just gone through, so re-check immediately instead of waiting out
+    // the interval. Paying in another app easily takes longer than the two
+    // minutes this screen allows, so a wait that gave up while we were away
+    // starts over rather than greeting the user with a dead end.
+    if (_timedOut) {
+      _startPolling();
+    } else {
       _poll();
     }
   }

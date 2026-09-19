@@ -79,5 +79,12 @@
             <action android:name="android.intent.action.DIAL"/>
             <data android:scheme="tel"/>
         </intent>
+        <!-- То же самое для браузера: страница оплаты уходит во внешний
+             браузер, а с Android 11 он не виден приложению без этой записи —
+             launchUrl вернёт false и платить будет негде. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
     </queries>
 </manifest>

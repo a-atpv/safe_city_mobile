@@ -1234,6 +1234,12 @@ abstract class AppLocalizations {
   /// **'Не удалось создать платёж'**
   String get paywallPaymentCreateFailed;
 
+  /// No description provided for @paywallPaymentPageFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось открыть страницу оплаты'**
+  String get paywallPaymentPageFailed;
+
   /// Условия автосписаний, которые Робокасса требует на форме оплаты. Путь «Профиль → Подписка → …» должен совпадать с подписями кнопок на этом языке
   ///
   /// In ru, this message translates to:

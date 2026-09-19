@@ -631,6 +631,9 @@ class AppLocalizationsKk extends AppLocalizations {
   String get paywallPaymentCreateFailed => 'Төлем жасау мүмкін болмады';
 
   @override
+  String get paywallPaymentPageFailed => 'Төлем бетін ашу мүмкін болмады';
+
+  @override
   String paywallRecurringTerms(String amounts) {
     return 'Жазылым автоматты түрде ұзартылады: $amounts — мерзімсіз, бас тартқанға дейін. Автоұзартуды кез келген уақытта өшіруге болады: Профиль → Жазылым → «Жазылымнан бас тарту» арқылы немесе қолдау қызметіне жүгіну арқылы. Бас тартқаннан кейін ақша алынбайды, қолжетімділік төленген кезеңнің соңына дейін сақталады.';
   }

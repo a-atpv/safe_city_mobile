@@ -98,8 +98,17 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       ),
     );
 
-    await PaymentLauncher.open(context, result.paymentUrl);
+    final launched = await PaymentLauncher.open(result.paymentUrl);
     if (!mounted) return;
+    if (!launched) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.paywallPaymentPageFailed)),
+      );
+      return;
+    }
+    // The payment now happens in the browser, so this screen is what the user
+    // comes back to. It polls for the outcome; the `safecity://` deep link
+    // lands on the same route and sees it is already here.
     context.push('/subscribe/status');
   }
 
