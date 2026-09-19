@@ -38,10 +38,11 @@ void main() async {
     debugPrint('Push notification initialization failed or timed out: $e\n$st');
   }
 
-  // Аналитика рекламных кампаний — Meta и Google Analytics for Firebase.
-  // Оба SDK стартуют нативно, отсюда только согласие на рекламный
-  // идентификатор. Запрос ATT — не здесь, а с главного экрана: системный
-  // диалог на сплеше пользователь закрывает не читая.
+  // Аналитика рекламных кампаний — Meta, Google Analytics for Firebase и
+  // AppsFlyer. Meta и Firebase стартуют нативно, от них здесь только согласие
+  // на рекламный идентификатор; AppsFlyer заводится отсюда целиком. Запрос
+  // ATT — не здесь, а с главного экрана: системный диалог на сплеше
+  // пользователь закрывает не читая.
   //
   // Строго после Firebase.initializeApp() выше: без поднятого Firebase
   // события Google Analytics уходить некуда.

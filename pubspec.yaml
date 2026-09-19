@@ -68,6 +68,12 @@ dependencies:
   facebook_app_events: ^0.30.5
   # Системный запрос ATT: сам facebook_app_events его не показывает.
   app_tracking_transparency: ^2.0.7
+  # AppsFlyer — атрибуция установок и покупок сразу по всем кампаниям.
+  # Версия прибита намертво: AppsFlyer выкладывает кандидаты как 7.0.2+2-rc1,
+  # то есть «-rc1» попадает в build-метку, а не в пре-релиз, и pub считает
+  # такой кандидат новее финальной 7.0.2+2 — с «^7.0.2» `pub upgrade` уехал
+  # бы на него.
+  appsflyer_sdk: 7.0.2+2
 
 dev_dependencies:
   flutter_test:

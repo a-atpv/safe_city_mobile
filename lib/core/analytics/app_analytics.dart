@@ -1,22 +1,26 @@
+import 'appsflyer_analytics.dart';
 import 'google_analytics.dart';
 import 'meta_analytics.dart';
 
 /// Единственная точка, через которую приложение шлёт аналитику.
 ///
 /// Рекламных площадок у нас две — Meta (Facebook, Instagram) и Google Ads, —
-/// и воронка им нужна одна и та же. Поэтому экраны зовут `AppAnalytics`, а он
-/// разводит событие по обоим SDK: новое событие тогда добавляется в одном
+/// а поверх них AppsFlyer, который сводит кампании обеих в один кабинет. Воронка
+/// всем троим нужна одна и та же. Поэтому экраны зовут `AppAnalytics`, а он
+/// разводит событие по всем SDK: новое событие тогда добавляется в одном
 /// месте и не может «случайно уйти только в Meta».
 ///
-/// Что здесь можно отправлять, описано в `MetaAnalytics` и `GoogleAnalytics`
-/// и одинаково для обоих: только факт события, код тарифа и сумма покупки.
+/// Что здесь можно отправлять, описано в `MetaAnalytics`, `GoogleAnalytics` и
+/// `AppsFlyerAnalytics` и одинаково для всех: только факт события, код тарифа
+/// и сумма покупки.
 /// Никакой геолокации, ничего о вызове SOS, никаких контактов — это не
 /// осторожность вообще, а требование политики Google Play к приложениям с
 /// фоновой геолокацией.
 ///
 /// Установку («app install») ни одному из SDK сообщать не нужно: Meta считает
 /// её сама при первом запуске, Firebase отправляет `first_open` — именно это
-/// событие импортируется в Google Ads как конверсия «Установка приложения».
+/// событие импортируется в Google Ads как конверсия «Установка приложения», —
+/// а для AppsFlyer установка и есть первая сессия.
 class AppAnalytics {
   AppAnalytics._();
 
@@ -26,22 +30,28 @@ class AppAnalytics {
     await Future.wait([
       MetaAnalytics.initialize(),
       GoogleAnalytics.initialize(),
+      AppsFlyerAnalytics.initialize(),
     ]);
   }
 
-  /// Системный запрос App Tracking Transparency на iOS — один на оба SDK.
+  /// Системный запрос App Tracking Transparency на iOS — один на все SDK.
   /// IDFA читают и Meta, и Firebase Analytics (в подах он тянется как
-  /// `GoogleAppMeasurement/IdentitySupport`), но диалог система показывает
-  /// один раз на приложение, и отказ закрывает идентификатор сразу для всех.
-  /// Сам вызов оставлен на стороне Meta: там же живёт синхронизация флага
-  /// сбора IDFA, которую Firebase делает за нас.
-  static Future<void> requestTrackingPermission() =>
-      MetaAnalytics.requestTrackingPermission();
+  /// `GoogleAppMeasurement/IdentitySupport`), и AppsFlyer, но диалог система
+  /// показывает один раз на приложение, и отказ закрывает идентификатор сразу
+  /// для всех. Сам вызов оставлен на стороне Meta: там же живёт синхронизация
+  /// флага сбора IDFA, которую Firebase и AppsFlyer делают за нас. Зато
+  /// AppsFlyer до ответа придерживает сессию, и после ответа его нужно
+  /// отпустить.
+  static Future<void> requestTrackingPermission() async {
+    await MetaAnalytics.requestTrackingPermission();
+    AppsFlyerAnalytics.trackingPermissionSettled();
+  }
 
   /// Регистрация — первое событие воронки после установки.
   static Future<void> logRegistration() => Future.wait([
         MetaAnalytics.logRegistration(),
         GoogleAnalytics.logRegistration(),
+        AppsFlyerAnalytics.logRegistration(),
       ]);
 
   /// Пользователь ушёл на страницу оплаты.
@@ -57,6 +67,11 @@ class AppAnalytics {
           currency: currency,
         ),
         GoogleAnalytics.logCheckoutStarted(
+          plan: plan,
+          amountTiyn: amountTiyn,
+          currency: currency,
+        ),
+        AppsFlyerAnalytics.logCheckoutStarted(
           plan: plan,
           amountTiyn: amountTiyn,
           currency: currency,
@@ -78,6 +93,12 @@ class AppAnalytics {
           orderId: orderId,
         ),
         GoogleAnalytics.logPurchase(
+          amountTiyn: amountTiyn,
+          currency: currency,
+          plan: plan,
+          orderId: orderId,
+        ),
+        AppsFlyerAnalytics.logPurchase(
           amountTiyn: amountTiyn,
           currency: currency,
           plan: plan,

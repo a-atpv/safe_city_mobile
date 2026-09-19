@@ -47,6 +47,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSAdvertisingAttributionReportEndpoint</key>
+	<string>https://appsflyer-skadnetwork.com/</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Для вызова охраны необходимо определить ваше местоположение</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
