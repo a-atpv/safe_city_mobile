@@ -154,6 +154,8 @@
   "updateAvailableTitle": "Update available",
   "updateVersion": "Version {version}.",
   "updateAction": "Update",
+  "routeNotFoundTitle": "Page not found",
+  "routeNotFoundBody": "Looks like this link leads nowhere. If you've just paid for a subscription, your money isn't lost: the status will update on its own, and you can check it in your profile.",
   "navHome": "Home",
   "navHistory": "History",
   "authSendCodeFailed": "Couldn't send the code",

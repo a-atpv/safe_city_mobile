@@ -154,6 +154,8 @@
   "updateAvailableTitle": "Жаңарту шықты",
   "updateVersion": "Нұсқа {version}.",
   "updateAction": "Жаңарту",
+  "routeNotFoundTitle": "Бет табылмады",
+  "routeNotFoundBody": "Сілтеме ешқайда апармайтын сияқты. Егер жаңа ғана жазылымды төлеген болсаңыз, ақшаңыз жоғалмайды: мәртебе өзі жаңарады, оны профильден тексеруге болады.",
   "navHome": "Басты бет",
   "navHistory": "Тарих",
   "authSendCodeFailed": "Кодты жіберу мүмкін болмады",

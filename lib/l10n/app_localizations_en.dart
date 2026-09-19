@@ -516,6 +516,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateAction => 'Update';
 
   @override
+  String get routeNotFoundTitle => 'Page not found';
+
+  @override
+  String get routeNotFoundBody =>
+      'Looks like this link leads nowhere. If you\'ve just paid for a subscription, your money isn\'t lost: the status will update on its own, and you can check it in your profile.';
+
+  @override
   String get navHome => 'Home';
 
   @override

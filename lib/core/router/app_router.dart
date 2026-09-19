@@ -17,6 +17,7 @@ import '../../features/subscription/presentation/payment_status_screen.dart';
 import '../../features/subscription/presentation/subscription_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
+import '../../shared/widgets/route_error_screen.dart';
 import '../../shared/providers/auth_provider.dart';
 import '../../shared/providers/user_provider.dart';
 import '../../l10n/l10n.dart';
@@ -24,6 +25,18 @@ import '../../l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
+
+/// Куда ведёт возврат из браузера после оплаты (`safecity://pay/success|fail`),
+/// или null, если адрес к оплате не относится.
+///
+/// Одна точка на два входа: ссылку ловит и app_links в `main.dart`, и движок
+/// Flutter, который отдаёт её роутеру как обычный адрес — целиком, вместе со
+/// схемой. Второй путь и приводил к «Page Not Found» с текстом исключения на
+/// экране человека, который только что заплатил.
+String? payReturnRoute(Uri uri) {
+  if (uri.scheme != 'safecity' || uri.host != 'pay') return null;
+  return uri.path.contains('success') ? '/subscribe/status' : '/subscribe';
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authChangeNotifier = ref.watch(authChangeNotifierProvider);
@@ -33,7 +46,14 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     debugLogDiagnostics: true,
     refreshListenable: authChangeNotifier,
+    // Никакой адрес не должен выводить человеку текст исключения.
+    errorBuilder: (context, state) => const RouteErrorScreen(),
     redirect: (context, state) {
+      // Схему оплаты переводим во внутренний маршрут раньше всех остальных
+      // проверок — дальше по нему отработает обычный редирект авторизации.
+      final payReturn = payReturnRoute(state.uri);
+      if (payReturn != null) return payReturn;
+
       final authState = ref.read(authProvider);
       final userState = ref.read(userProvider);
       final status = authState.status;

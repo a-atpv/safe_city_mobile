@@ -1024,6 +1024,18 @@ abstract class AppLocalizations {
   /// **'Обновить'**
   String get updateAction;
 
+  /// No description provided for @routeNotFoundTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Страница не найдена'**
+  String get routeNotFoundTitle;
+
+  /// No description provided for @routeNotFoundBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Похоже, ссылка ведёт в никуда. Если вы только что оплатили подписку, деньги не потеряются: статус обновится сам, проверить его можно в профиле.'**
+  String get routeNotFoundBody;
+
   /// No description provided for @navHome.
   ///
   /// In ru, this message translates to:

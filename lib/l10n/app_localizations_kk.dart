@@ -518,6 +518,13 @@ class AppLocalizationsKk extends AppLocalizations {
   String get updateAction => 'Жаңарту';
 
   @override
+  String get routeNotFoundTitle => 'Бет табылмады';
+
+  @override
+  String get routeNotFoundBody =>
+      'Сілтеме ешқайда апармайтын сияқты. Егер жаңа ғана жазылымды төлеген болсаңыз, ақшаңыз жоғалмайды: мәртебе өзі жаңарады, оны профильден тексеруге болады.';
+
+  @override
   String get navHome => 'Басты бет';
 
   @override

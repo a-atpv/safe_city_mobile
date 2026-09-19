@@ -522,6 +522,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get updateAction => 'Обновить';
 
   @override
+  String get routeNotFoundTitle => 'Страница не найдена';
+
+  @override
+  String get routeNotFoundBody =>
+      'Похоже, ссылка ведёт в никуда. Если вы только что оплатили подписку, деньги не потеряются: статус обновится сам, проверить его можно в профиле.';
+
+  @override
   String get navHome => 'Главная';
 
   @override

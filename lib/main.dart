@@ -111,12 +111,11 @@ class _SafeCityAppState extends ConsumerState<SafeCityApp> {
   }
 
   void _handleUri(Uri uri) {
-    if (uri.scheme != 'safecity' || uri.host != 'pay') return;
     // The status screen polls the backend for the real outcome (the ResultURL
     // callback is the source of truth); we just land the user back on it.
+    final target = payReturnRoute(uri);
+    if (target == null) return;
     final router = ref.read(routerProvider);
-    final target =
-        uri.path.contains('success') ? '/subscribe/status' : '/subscribe';
     // The screen may already be up — the paywall pushes it as soon as the
     // payment page closes. Going there again stacks a second identical copy,
     // and then «назад» pops onto its twin and looks like it did nothing.

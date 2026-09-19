@@ -13,6 +13,7 @@ import 'package:safe_city/l10n/l10n.dart';
 import 'package:safe_city/shared/providers/language_provider.dart';
 import 'package:safe_city/shared/providers/payment_provider.dart';
 import 'package:safe_city/shared/widgets/language_picker.dart';
+import 'package:safe_city/shared/widgets/route_error_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Язык интерфейса: переключение с экрана входа и вёрстка на всех трёх
@@ -173,6 +174,7 @@ void main() {
         'вход': const LoginScreen(),
         'код из почты': const OtpScreen(email: 'user.name@example.com'),
         'оплата': const PaywallScreen(),
+        'нет страницы': const RouteErrorScreen(),
       };
 
       for (final entry in screens.entries) {
