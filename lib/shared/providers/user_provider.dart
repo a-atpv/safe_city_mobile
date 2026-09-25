@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api.dart';
 import '../models/subscription.dart';
 import '../models/user_settings.dart';
+import 'payment_provider.dart';
 
 // User model
 class User {
@@ -98,6 +101,11 @@ class UserNotifier extends Notifier<UserState> {
       if (response.statusCode == 200) {
         final user = User.fromJson(response.data);
         state = state.copyWith(isLoading: false, user: user);
+        // Свежая подписка — момент проверить, не подтвердилась ли оплата,
+        // ушедшая в браузер (в том числе до перезапуска приложения).
+        unawaited(
+          ref.read(paymentProvider.notifier).reportPurchaseIfConfirmed(user),
+        );
       }
     } on ApiException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);

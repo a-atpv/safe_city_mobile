@@ -5,10 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../core/analytics/app_analytics.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/l10n.dart';
-import '../../../shared/providers/payment_provider.dart';
 import '../../../shared/providers/user_provider.dart';
 
 /// Shown after the payment page closes. Polls the backend subscription status
@@ -80,7 +78,6 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
       if (!mounted) return;
       if (active) {
         _timer?.cancel();
-        _reportPurchase();
         setState(() => _active = true);
       } else {
         _attempts++;
@@ -92,23 +89,6 @@ class _PaymentStatusScreenState extends ConsumerState<PaymentStatusScreen>
     } finally {
       _checking = false;
     }
-  }
-
-  /// Покупка засчитывается один раз: платёж, по которому отправили событие,
-  /// сразу забывается. Продления подписки сюда не попадают — их проводит
-  /// бэкенд без участия приложения.
-  void _reportPurchase() {
-    final pending = ref.read(paymentProvider).pending;
-    if (pending == null) return;
-    ref.read(paymentProvider.notifier).clearPending();
-    unawaited(
-      AppAnalytics.logPurchase(
-        amountTiyn: pending.amount,
-        currency: pending.currency,
-        plan: pending.planCode,
-        orderId: pending.paymentId,
-      ),
-    );
   }
 
   @override

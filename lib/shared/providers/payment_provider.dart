@@ -1,8 +1,14 @@
-import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
 
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../core/analytics/app_analytics.dart';
 import '../../core/api/api.dart';
 import '../../features/subscription/data/payment_models.dart';
+import 'user_provider.dart';
 
 class PaymentState {
   final List<Plan> plans;
@@ -11,18 +17,12 @@ class PaymentState {
   final bool isCancelling;
   final String? error;
 
-  /// Последний созданный платёж — по нему экран статуса отправляет событие
-  /// покупки в Meta. Сбрасывается сразу после отправки, чтобы одна оплата не
-  /// засчиталась дважды.
-  final PendingPayment? pending;
-
   const PaymentState({
     this.plans = const [],
     this.isLoadingPlans = false,
     this.isCreating = false,
     this.isCancelling = false,
     this.error,
-    this.pending,
   });
 
   PaymentState copyWith({
@@ -31,8 +31,6 @@ class PaymentState {
     bool? isCreating,
     bool? isCancelling,
     String? error,
-    PendingPayment? pending,
-    bool clearPending = false,
   }) {
     return PaymentState(
       plans: plans ?? this.plans,
@@ -40,7 +38,6 @@ class PaymentState {
       isCreating: isCreating ?? this.isCreating,
       isCancelling: isCancelling ?? this.isCancelling,
       error: error,
-      pending: clearPending ? null : (pending ?? this.pending),
     );
   }
 }
@@ -88,10 +85,8 @@ class PaymentNotifier extends Notifier<PaymentState> {
       final result = CreatePaymentResult.fromJson(
         response.data as Map<String, dynamic>,
       );
-      state = state.copyWith(
-        isCreating: false,
-        pending: PendingPayment.of(planCode, result),
-      );
+      await _rememberPending(planCode, result);
+      state = state.copyWith(isCreating: false);
       return result;
     } on DioException catch (e) {
       state = state.copyWith(
@@ -105,10 +100,84 @@ class PaymentNotifier extends Notifier<PaymentState> {
     }
   }
 
-  /// Забыть подтверждённый платёж — чтобы повторный заход на экран статуса не
-  /// отправил событие покупки второй раз.
-  void clearPending() {
-    state = state.copyWith(clearPending: true);
+  /// Ключ, под которым ждёт подтверждения последний платёж. Один на
+  /// устройство: новый платёж вытесняет брошенный старый.
+  static const _pendingKey = 'payments.pending_purchase';
+
+  bool _reporting = false;
+
+  Future<void> _rememberPending(
+    String planCode,
+    CreatePaymentResult result,
+  ) async {
+    var user = ref.read(userProvider).user;
+    if (user == null) {
+      await ref.read(userProvider.notifier).fetchUser();
+      user = ref.read(userProvider).user;
+    }
+    if (user == null) return;
+    final pending = PendingPayment.of(
+      planCode,
+      result,
+      userId: user.id,
+      subscriptionBefore: user.subscription,
+    );
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_pendingKey, jsonEncode(pending.toJson()));
+    } catch (e, st) {
+      debugPrint('Pending payment not saved: $e\n$st');
+    }
+  }
+
+  /// Отправляет событие покупки, если ожидающий платёж подтверждён тем, что
+  /// сейчас отдал `/user/me`. Зовётся после каждого успешного `fetchUser` —
+  /// на экране статуса оплаты, на главном, в профиле, — поэтому покупка
+  /// засчитается, даже если приложение выгрузили, пока человек платил в
+  /// браузере, или подтверждение пришло позже двух минут ожидания.
+  ///
+  /// Одна оплата — одно событие: запись стирается раньше отправки.
+  Future<void> reportPurchaseIfConfirmed(User user) async {
+    if (_reporting) return;
+    _reporting = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_pendingKey);
+      if (raw == null) return;
+
+      PendingPayment pending;
+      try {
+        pending = PendingPayment.fromJson(
+          jsonDecode(raw) as Map<String, dynamic>,
+        );
+      } catch (_) {
+        await prefs.remove(_pendingKey);
+        return;
+      }
+
+      if (pending.isStale(DateTime.now())) {
+        await prefs.remove(_pendingKey);
+        return;
+      }
+      if (!pending.isConfirmedBy(
+        userId: user.id,
+        subscription: user.subscription,
+      )) {
+        return;
+      }
+
+      await prefs.remove(_pendingKey);
+      await AppAnalytics.logPurchase(
+        amountTiyn: pending.amount,
+        currency: pending.currency,
+        plan: pending.planCode,
+        orderId: pending.paymentId,
+      );
+    } catch (e, st) {
+      debugPrint('Purchase report failed: $e\n$st');
+    } finally {
+      _reporting = false;
+    }
   }
 
   /// Turn off auto-renewal. Access is kept until the period ends; only future
@@ -132,5 +201,6 @@ class PaymentNotifier extends Notifier<PaymentState> {
   }
 }
 
-final paymentProvider =
-    NotifierProvider<PaymentNotifier, PaymentState>(PaymentNotifier.new);
+final paymentProvider = NotifierProvider<PaymentNotifier, PaymentState>(
+  PaymentNotifier.new,
+);
