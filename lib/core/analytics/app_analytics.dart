@@ -47,6 +47,24 @@ class AppAnalytics {
     AppsFlyerAnalytics.trackingPermissionSettled();
   }
 
+  /// Маршруты, о которых аналитика не узнаёт: показ экрана вызова уже сам
+  /// по себе сообщает, что человек нажал SOS, а про вызовы наружу не уходит
+  /// ничего. Сплеш — не экран, а ожидание проверки токена.
+  static bool _isTrackedScreen(String name) =>
+      name != 'splash' && !name.startsWith('emergency');
+
+  /// Переход на экран — `screen_view` в Firebase, по имени маршрута из
+  /// `app_router.dart` («home», «subscribe», …). Только Firebase: в Meta и
+  /// AppsFlyer просмотры экранов кампаниям ничего не дают, а Firebase сам
+  /// видит во Flutter лишь один нативный экран на всё приложение.
+  ///
+  /// В именах маршрутов нет ни идентификаторов, ни параметров — только это и
+  /// делает их безопасными для отправки.
+  static void logScreen(String? name) {
+    if (name == null || !_isTrackedScreen(name)) return;
+    GoogleAnalytics.logScreen(name);
+  }
+
   /// Регистрация — первое событие воронки после установки.
   static Future<void> logRegistration() => Future.wait([
         MetaAnalytics.logRegistration(),

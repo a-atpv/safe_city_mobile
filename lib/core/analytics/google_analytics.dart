@@ -15,8 +15,10 @@ import 'package:flutter/foundation.dart';
 ///
 /// Установку считать руками не нужно: `first_open` — то самое событие, которое
 /// в Google Ads импортируется как конверсия «Установка приложения», — SDK
-/// отправляет сам при первом запуске после установки. `app_open`,
-/// `session_start` и `screen_view` тоже собираются автоматически.
+/// отправляет сам при первом запуске после установки. `session_start` тоже
+/// собирается автоматически, а вот `screen_view` — нет: во Flutter SDK видит
+/// один нативный экран на всё приложение, поэтому экраны шлём сами по
+/// маршрутам (см. `AppAnalytics.logScreen`).
 class GoogleAnalytics {
   GoogleAnalytics._();
 
@@ -41,6 +43,17 @@ class GoogleAnalytics {
     } catch (e, st) {
       debugPrint('Firebase Analytics init failed: $e\n$st');
     }
+  }
+
+  static String? _lastScreen;
+
+  /// `screen_view` по имени маршрута. Делегат роутера оповещает и о
+  /// переходах, которые экран не меняют (редирект на тот же адрес, обновление
+  /// состояния), поэтому повтор того же экрана подряд не отправляем.
+  static void logScreen(String name) {
+    if (_analytics == null || name == _lastScreen) return;
+    _lastScreen = name;
+    _send((a) => a.logScreenView(screenName: name, screenClass: name));
   }
 
   /// Регистрация — стандартное `sign_up`, первое событие воронки после

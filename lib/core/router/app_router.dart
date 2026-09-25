@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import '../analytics/app_analytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/otp_screen.dart';
@@ -41,7 +42,7 @@ String? payReturnRoute(Uri uri) {
 final routerProvider = Provider<GoRouter>((ref) {
   final authChangeNotifier = ref.watch(authChangeNotifierProvider);
 
-  return GoRouter(
+  final router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/',
     debugLogDiagnostics: true,
@@ -233,6 +234,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  // Экраны для аналитики. Навигатор-обсервер здесь не годится: вкладки
+  // StatefulShellRoute живут в своих навигаторах, и переключение между ними
+  // обсервер корневого навигатора не видит. Делегат роутера меняется на любой
+  // переход, включая вкладки.
+  void reportScreen() {
+    try {
+      AppAnalytics.logScreen(router.state.name);
+    } catch (_) {
+      // Адрес без маршрута (errorBuilder) — отчитываться не о чем.
+    }
+  }
+
+  router.routerDelegate.addListener(reportScreen);
+  ref.onDispose(() => router.routerDelegate.removeListener(reportScreen));
+  return router;
 });
 
 
